@@ -1,0 +1,250 @@
+.main {
+  min-height: 100vh;
+  background: var(--background);
+  padding: 4rem 0;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 3rem;
+  position: relative;
+}
+
+.topNav {
+  display: flex;
+  margin-bottom: 2rem;
+}
+
+.backLink {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--primary);
+  font-weight: 700;
+  text-decoration: none;
+  background: var(--secondary);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-full);
+  transition: var(--transition);
+}
+
+.backLink:hover {
+  transform: translateX(-5px);
+  background: rgba(255, 121, 121, 0.2);
+}
+
+.orderIdentity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.orderId {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--primary);
+  background: var(--secondary);
+  padding: 0.4rem 1.5rem;
+  border-radius: var(--radius-full);
+}
+
+.customerName {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.statusSection {
+  max-width: 600px;
+  margin: 0 auto 3rem;
+}
+
+.estimatedCard {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border);
+  margin-bottom: 3rem;
+}
+
+.estimatedInfo {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.clockIcon {
+  color: var(--primary);
+}
+
+.estimatedInfo h3 {
+  font-size: 1rem;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.timeValue {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding-left: 1rem;
+}
+
+.statusItem {
+  display: flex;
+  gap: 2rem;
+  position: relative;
+}
+
+.statusIconWrapper {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  background: white;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  display: flex-center;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  z-index: 2;
+  transition: var(--transition);
+}
+
+.line {
+  position: absolute;
+  top: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 2rem;
+  background: var(--border);
+  z-index: 1;
+}
+
+.statusText {
+  padding-top: 0.5rem;
+}
+
+.statusLabel {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text-muted);
+}
+
+.statusBadge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-top: 0.25rem;
+  color: var(--text-muted);
+}
+
+/* Modifier Classes */
+.past .statusIconWrapper {
+  background: var(--success);
+  border-color: var(--success);
+  color: white;
+}
+
+.past .line {
+  background: var(--success);
+}
+
+.past .statusLabel {
+  color: var(--text-main);
+}
+
+.current .statusIconWrapper {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+  box-shadow: 0 0 0 6px var(--secondary);
+}
+
+.current .statusLabel {
+  color: var(--primary);
+  font-size: 1.25rem;
+}
+
+.current .statusBadge {
+  color: var(--primary);
+}
+
+.delivered .statusIconWrapper {
+  background: var(--success) !important;
+  border-color: var(--success) !important;
+  color: white !important;
+  box-shadow: 0 0 0 6px rgba(0, 184, 148, 0.2) !important;
+  animation: pulseGreen 2s infinite;
+}
+
+.delivered .statusLabel {
+  color: var(--success) !important;
+}
+
+.delivered .statusBadge {
+  color: var(--success) !important;
+}
+
+@keyframes pulseGreen {
+  0% { box-shadow: 0 0 0 0 rgba(0, 184, 148, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(0, 184, 148, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 184, 148, 0); }
+}
+
+.detailsSection {
+  max-width: 600px;
+  margin: 0 auto;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.card h3 {
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.detailRow {
+  display: flex;
+  gap: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.supportText {
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+
+.contactBtn {
+  width: 100%;
+  border: 2px solid var(--primary);
+  color: var(--primary);
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+}
+
+.contactBtn:hover {
+  background: var(--primary);
+  color: white;
+}

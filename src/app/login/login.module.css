@@ -1,0 +1,128 @@
+.main {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #FFF5F7 0%, #FFFFFF 100%);
+  padding: 2rem;
+}
+
+.loginCard {
+  background: white;
+  width: 100%;
+  max-width: 400px;
+  padding: 3rem;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.logo {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 1.5rem;
+  color: var(--primary);
+  margin-bottom: 1rem;
+}
+
+.header h1 {
+  font-size: 1.75rem;
+  color: var(--text-main);
+  margin-bottom: 0.5rem;
+}
+
+.header p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.inputGroup label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 0.5rem;
+}
+
+.inputWrapper {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0 1rem;
+  transition: var(--transition);
+}
+
+.inputWrapper:focus-within {
+  border-color: var(--primary);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(212, 78, 109, 0.1);
+}
+
+.inputWrapper svg {
+  color: var(--text-muted);
+}
+
+.inputWrapper input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  padding: 1rem 0;
+  font-size: 1rem;
+  color: var(--text-main);
+}
+
+.error {
+  color: var(--error);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.loginBtn {
+  background: var(--primary);
+  color: white;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 1rem;
+  margin-top: 1rem;
+  transition: var(--transition);
+}
+
+.loginBtn:hover {
+  background: var(--primary-hover);
+  transform: translateY(-2px);
+}
+
+.footer {
+  margin-top: 2.5rem;
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+}
+
+.hint {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}

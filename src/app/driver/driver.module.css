@@ -1,0 +1,299 @@
+.main {
+  min-height: 100vh;
+  background: #f0f2f5;
+  padding-bottom: 2rem;
+}
+
+.header {
+  background: var(--primary);
+  color: white;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 2rem;
+}
+
+.headerContent {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.logoutBtn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 0.5rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.logoutBtn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.icon {
+  width: 32px;
+  height: 32px;
+}
+
+.header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.listSection {
+  padding: 0 1rem;
+}
+
+.sectionTitle {
+  font-size: 1.25rem;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.orderList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.orderCard {
+  background: white;
+  padding: 1.5rem;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+}
+
+.orderHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.orderId {
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.readyBadge {
+  background: var(--secondary);
+  color: var(--primary);
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.customerName {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.addressText {
+  display: flex;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+}
+
+.btnStart {
+  width: 100%;
+  background: var(--primary);
+  color: white;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+/* Active Delivery */
+.activeDelivery {
+  background: white;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+
+.activeHeader {
+  background: #2d3436;
+  color: white;
+  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pulseDot {
+  width: 12px;
+  height: 12px;
+  background: var(--success);
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(0, 184, 148, 0.7);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 184, 148, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0, 184, 148, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 184, 148, 0); }
+}
+
+.deliveryDetails {
+  padding: 2rem;
+}
+
+.detailGroup {
+  margin-bottom: 2rem;
+}
+
+.detailGroup label {
+  display: block;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.customerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.phoneBtn {
+  background: var(--secondary);
+  color: var(--primary);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.activeAddress {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+  line-height: 1.4;
+}
+
+.btnNav {
+  width: 100%;
+  border: 2px solid var(--primary);
+  color: var(--primary);
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.trackingStatus {
+  background: #fff3e0;
+  color: #f57c00;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 2rem;
+}
+
+.btnComplete {
+  width: 100%;
+  background: var(--success);
+  color: white;
+  padding: 1.25rem;
+  border-radius: var(--radius-md);
+  font-size: 1.25rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  box-shadow: 0 10px 20px rgba(0, 184, 148, 0.2);
+}
+
+.successOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.successCard {
+  background: white;
+  padding: 4rem 2rem;
+  border-radius: 40px;
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+}
+
+.pulseContainer {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.successIcon {
+  color: var(--success);
+  position: relative;
+  z-index: 2;
+}
+
+.pulseRing {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--success);
+  opacity: 0.2;
+  animation: pulseSuccess 2s infinite;
+}
+
+@keyframes pulseSuccess {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+.successCard h2 {
+  font-size: 2rem;
+  color: var(--text-main);
+  margin-bottom: 1rem;
+}
+
+.successCard p {
+  color: var(--text-muted);
+  line-height: 1.6;
+}
