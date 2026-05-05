@@ -414,6 +414,10 @@ export default function DriverDashboard() {
                 maxLength={4}
                 inputMode="numeric"
                 value={pinInput}
+                onFocus={(e) => {
+                  // Senior: Ensures input is visible when keyboard opens
+                  setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+                }}
                 onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
                 placeholder="****"
                 className={styles.pinInput}
@@ -422,7 +426,13 @@ export default function DriverDashboard() {
 
               <div className={styles.pinActions}>
                 <button onClick={() => setShowPinModal(false)} className={styles.btnCancel}>Cancelar</button>
-                <button onClick={verifyPin} className={styles.btnConfirm}>Acessar</button>
+                <button 
+                  onClick={verifyPin} 
+                  className={styles.btnConfirm}
+                  disabled={pinInput.length < 4}
+                >
+                  Acessar
+                </button>
               </div>
             </motion.div>
           </div>
