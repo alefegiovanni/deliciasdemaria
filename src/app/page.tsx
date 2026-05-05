@@ -300,6 +300,21 @@ export default function Home() {
 
   return (
     <main className={styles.main}>
+      {/* Cinematic Video Background */}
+      <div className={styles.videoBackground}>
+        <video 
+          autoPlay 
+          loop 
+          muted 
+          playsInline 
+          className={styles.bgVideo}
+          poster="/bg-menu.jpg"
+        >
+          <source src="/bg-video.mp4" type="video/mp4" />
+        </video>
+        <div className={styles.videoOverlay} />
+      </div>
+
       {/* Recovery Badge */}
       <AnimatePresence>
         {activeOrderId && step === 'menu' && (
@@ -365,10 +380,8 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h2 className={styles.heroTitle}>Sua refeição diária, com a qualidade Maria.</h2>
-            <p className={styles.heroSubtitle}>
-              Marmitas variadas e saborosas preparadas para garantir praticidade e nutrição no seu dia a dia.
-            </p>
+            <h2 className={styles.heroTitle}>Sua refeição diária, com a qualidade <span>Delícias de Maria</span></h2>
+            <p className={styles.heroSubtitle}>Refeições variadas e saborosas preparadas para garantir praticidade e nutrição no seu dia a dia.</p>
           </motion.div>
         </div>
       </section>

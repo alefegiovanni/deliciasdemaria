@@ -1,5 +1,35 @@
 .main {
   min-height: 100vh;
+  position: relative;
+  background-color: var(--background);
+}
+
+.videoBackground {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.bgVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(10px); /* Blur elegante para não distrair (ajustável) */
+  transform: scale(1.05); /* Escala leve para evitar bordas claras causadas pelo blur */
+}
+
+.videoOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.55); /* Overlay escuro para contraste (ajustável) */
 }
 
 .header {
@@ -102,8 +132,10 @@
 
 .hero {
   padding: 8rem 0 4rem;
-  background: linear-gradient(180deg, var(--secondary) 0%, var(--background) 100%);
+  background: transparent;
   text-align: center;
+  position: relative;
+  z-index: 1;
 }
 
 @media (max-width: 768px) {
@@ -114,26 +146,35 @@
 
 .heroTitle {
   font-size: clamp(2.5rem, 5vw, 4rem);
-  color: var(--text-main);
+  color: #FFFFFF;
   margin-bottom: 1.5rem;
-  line-height: 1.1;
+  line-height: 1.2;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  list-style: none;
+}
+
+.heroTitle span {
+  color: var(--primary);
+  display: block; /* Quebra de linha para destaque elegante */
+  filter: drop-shadow(0 0 10px rgba(212, 78, 109, 0.3));
 }
 
 .heroSubtitle {
   font-size: 1.25rem;
-  color: var(--text-muted);
-  max-width: 600px;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 700px;
   margin: 0 auto;
+  font-weight: 400;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  list-style: none;
 }
 
 .categoryNav {
-  background: white;
-  padding: 1rem 0;
-  border-bottom: 1px solid var(--border);
+  background: transparent;
+  padding: 1.5rem 0 1rem 0;
   position: sticky;
   top: 73px;
   z-index: 90;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -189,6 +230,8 @@
 
 .menuSection {
   padding: 4rem 0;
+  position: relative;
+  z-index: 1;
 }
 
 @media (max-width: 768px) {
