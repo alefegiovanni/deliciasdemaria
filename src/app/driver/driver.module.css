@@ -10,6 +10,7 @@
   background: var(--primary);
   color: white;
   padding: 1.5rem;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 1.25rem); /* Senior: Fixes iPhone status bar overlap */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -24,11 +25,17 @@
 @media (max-width: 480px) {
   .header {
     padding: 1rem;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 0.75rem);
     margin-bottom: 1rem;
   }
   
   .header h1 {
-    font-size: 1.25rem;
+    font-size: 1.1rem; /* Slightly smaller for mobile */
+  }
+
+  .logoutBtn {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
   }
 }
 
