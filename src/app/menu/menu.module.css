@@ -423,8 +423,80 @@
   border-radius: 10px;
   padding: 0.6rem 0.8rem;
   font-size: 16px; /* Senior: Prevents iOS auto-zoom (min 16px) */
-  outline: none;
+  align-items: center;
   transition: all 0.2s;
+}
+
+.recoveryBadge {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: white;
+  padding: 1rem 1.5rem;
+  border-radius: 50px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  cursor: pointer;
+  border: 1px solid #eee;
+  width: 90%;
+  max-width: 400px;
+  justify-content: space-between;
+}
+
+.recoveryInfo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.recoveryInfo strong {
+  color: var(--primary);
+  font-size: 0.95rem;
+  display: block;
+}
+
+.recoveryInfo p {
+  color: #666;
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.pulseContainerSmall {
+  position: relative;
+  width: 12px;
+  height: 12px;
+}
+
+.pulseDotSmall {
+  width: 100%;
+  height: 100%;
+  background-color: var(--success, #00b894);
+  border-radius: 50%;
+  position: relative;
+  z-index: 2;
+}
+
+.pulseDotSmall::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  background-color: var(--success, #00b894);
+  border-radius: 50%;
+  z-index: 1;
+  opacity: 0.4;
+  animation: pulseSmall 2s infinite;
+}
+
+@keyframes pulseSmall {
+  0% { transform: scale(0.8); opacity: 0.6; }
+  100% { transform: scale(2.5); opacity: 0; }
 }
 
 .cepInput { flex: 1; }
