@@ -652,31 +652,81 @@
 .successCard {
   background: white;
   padding: 3rem 2rem;
-  border-radius: 28px;
+  padding-bottom: calc(3rem + env(safe-area-inset-bottom, 0px));
+  border-radius: 32px;
   text-align: center;
   max-width: 400px;
   width: 100%;
   box-shadow: 0 30px 60px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pulseContainer {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .successIcon {
-  color: var(--success, #00b894);
-  display: flex;
-  justify-content: center;
-  margin-bottom: 1.5rem;
+  color: #00b894;
+  position: relative;
+  z-index: 2;
+}
+
+.pulseRing {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #00b894;
+  opacity: 0.2;
+  animation: pulseSuccess 2s infinite;
+}
+
+@keyframes pulseSuccess {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  100% { transform: scale(1.6); opacity: 0; }
 }
 
 .successCard h2 {
   font-size: 1.8rem;
   font-weight: 800;
-  margin-bottom: 1rem;
   color: #1a1a1a;
+  margin-bottom: 1rem;
 }
 
 .successCard p {
   color: #666;
-  margin-bottom: 2rem;
+  font-size: 1.1rem;
   line-height: 1.5;
+  margin-bottom: 2.5rem;
+}
+
+.successActions {
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .successCard {
+    padding: 2.5rem 1.5rem;
+    padding-bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px));
+    width: 95%;
+  }
+
+  .successCard h2 {
+    font-size: 1.6rem;
+  }
+
+  .successCard p {
+    font-size: 1rem;
+    margin-bottom: 2rem;
+  }
 }
 
 @media (max-width: 768px) {

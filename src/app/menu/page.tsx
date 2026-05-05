@@ -610,12 +610,23 @@ export default function MenuPage() {
       {/* Success View */}
       {step === 'success' && (
         <div className={styles.modalOverlay}>
-          <div className={styles.successCard}>
-            <div className={styles.successIcon}><CheckCircle2 size={48} /></div>
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className={styles.successCard}
+          >
+            <div className={styles.pulseContainer}>
+              <div className={styles.pulseRing} />
+              <CheckCircle2 size={64} className={styles.successIcon} />
+            </div>
             <h2>Pedido Confirmado!</h2>
-            <p>Seu pedido #{orderId.slice(-4).toUpperCase()} foi enviado para a Maria.</p>
-            <button onClick={() => router.push(`/order/${orderId}`)} className={styles.submitBtn}>Acompanhar Entrega</button>
-          </div>
+            <p>Seu pedido <strong>#{orderId.slice(-4).toUpperCase()}</strong> já está sendo preparado pela Maria.</p>
+            <div className={styles.successActions}>
+              <button onClick={() => router.push(`/order/${orderId}`)} className={styles.submitBtn}>
+                Acompanhar Entrega
+              </button>
+            </div>
+          </motion.div>
         </div>
       )}
     </main>
