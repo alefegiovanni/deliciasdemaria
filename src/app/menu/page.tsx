@@ -34,6 +34,7 @@ export default function MenuPage() {
   const [number, setNumber] = useState('');
   const [neighborhood, setNeighborhood] = useState('');
   const [city, setCity] = useState('');
+  const [complement, setComplement] = useState('');
   const [phone, setPhone] = useState('');
   const [payment, setPayment] = useState('Cartão (Entrega)');
   const [obs, setObs] = useState('');
@@ -109,6 +110,7 @@ export default function MenuPage() {
         setNumber(data.number || '');
         setNeighborhood(data.neighborhood || '');
         setCity(data.city || '');
+        setComplement(data.complement || '');
         setPhone(data.phone || '');
         
         if (data.cep) {
@@ -146,6 +148,7 @@ export default function MenuPage() {
       number,
       neighborhood,
       city,
+      complement,
       phone
     }));
   };
@@ -276,7 +279,7 @@ export default function MenuPage() {
       const orderData = {
         customer_name: customerName,
         customer_phone: phone,
-        address: `${street}, ${number} - ${neighborhood}, ${city} (CEP: ${cep})`,
+        address: `${street}, ${number}${complement ? ` (${complement})` : ''} - ${neighborhood}, ${city} (CEP: ${cep})`,
         payment_method: payment,
         items: cart.map(item => ({ id: item.product.id, name: item.product.name, qty: item.quantity })),
         notes: obs, // Agora a observação será salva corretamente!
@@ -287,6 +290,7 @@ export default function MenuPage() {
       const newOrder = await createOrder(orderData);
       setOrderId(newOrder.id);
       localStorage.setItem('last_order_id', newOrder.id);
+      saveAddress();
       setStep('success');
       setCart([]); 
     } catch (err: any) {
@@ -581,6 +585,10 @@ export default function MenuPage() {
                       <option>Cartão (Na Entrega)</option>
                       <option>Dinheiro (Na Entrega)</option>
                     </select>
+                  </div>
+                  <div className={styles.formGroupFull}>
+                    <label>Complemento (Opcional)</label>
+                    <input type="text" value={complement} onChange={e => setComplement(e.target.value)} placeholder="Ex: Apartamento 12, Bloco B, Casa no fundo..." />
                   </div>
                   <div className={styles.formGroupFull}>
                     <label>Observações (Opcional)</label>
