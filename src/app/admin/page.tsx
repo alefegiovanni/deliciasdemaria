@@ -584,14 +584,16 @@ export default function KitchenDashboard() {
                                 <span className={styles.itemQty}>{it.qty}x</span>
                                 <span className={styles.itemName}>{it.name}</span>
                               </div>
-                              {it.observation && (
-                                <div className={styles.itemObservation}>
-                                  <MessageCircle size={14} />
-                                  <span>{it.observation}</span>
-                                </div>
-                              )}
                             </div>
                           ))}
+                          
+                          {/* Observação Geral do Pedido - AGORA VISÍVEL */}
+                          {order.notes && (
+                            <div className={styles.orderGeneralNote}>
+                              <AlertCircle size={14} />
+                              <span><strong>OBS:</strong> {order.notes}</span>
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td>

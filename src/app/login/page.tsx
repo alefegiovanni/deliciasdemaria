@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Lock, User, ChefHat, Truck } from 'lucide-react';
+import { Lock, User, ChefHat, Truck, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import styles from './login.module.css';
@@ -57,6 +57,11 @@ export default function LoginPage() {
         animate={{ opacity: 1, scale: 1 }}
         className={styles.loginCard}
       >
+        <button onClick={() => router.push('/')} className={styles.backBtn}>
+          <ArrowLeft size={20} />
+          <span>Voltar para o site</span>
+        </button>
+
         <div className={styles.header}>
           <div className={styles.logo}>Delícias de Maria</div>
           <h1>Acesso Restrito</h1>
