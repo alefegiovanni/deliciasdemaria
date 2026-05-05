@@ -36,7 +36,6 @@ export default function Home() {
             muted 
             playsInline 
             className={styles.bgVideo}
-            poster="/bg-menu.jpg"
           >
             <source src="/bg-video.mp4" type="video/mp4" />
           </video>

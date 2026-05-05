@@ -20,6 +20,7 @@
   position: absolute;
   inset: 0;
   z-index: 1;
+  background: #000; /* Senior: Ensures no flash of white/old image while video loads */
 }
 
 .bgVideo {
