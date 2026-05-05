@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { ShoppingBag, Plus, Minus, X, MapPin, CheckCircle2, ChevronRight, ArrowLeft } from 'lucide-react';
+import { ShoppingBag, Plus, Minus, X, MapPin, CheckCircle2, ChevronRight, ArrowLeft, Search, Clock, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase, createOrder } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -24,6 +24,31 @@ export default function MenuPage() {
   const [storeAddress, setStoreAddress] = useState('');
   const [calculatingFee, setCalculatingFee] = useState(false);
   const [distance, setDistance] = useState<number | null>(null);
+  
+  const searchOrders = async () => {
+    if (!recoveryPhone) return;
+    setIsSearching(true);
+    try {
+      // Clean phone number for better search
+      const cleanPhone = recoveryPhone.replace(/\D/g, '');
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .or(`customer_phone.eq.${recoveryPhone},customer_phone.ilike.%${cleanPhone}%`)
+        .neq('status', 'cancelled')
+        .order('created_at', { ascending: false })
+        .limit(3);
+      
+      if (error) throw error;
+      setFoundOrders(data || []);
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao buscar pedidos.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   const [showToast, setShowToast] = useState(false);
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
 
@@ -38,10 +63,21 @@ export default function MenuPage() {
   const [phone, setPhone] = useState('');
   const [payment, setPayment] = useState('Cartão (Entrega)');
   const [obs, setObs] = useState('');
+  const [isRecoveryOpen, setIsRecoveryOpen] = useState(false);
+  const [recoveryPhone, setRecoveryPhone] = useState('');
+  const [foundOrders, setFoundOrders] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     fetchProducts();
     fetchSettings();
+
+    // Senior: Handle recovery query param from landing page
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('recovery') === 'true') {
+      setIsRecoveryOpen(true);
+      window.history.replaceState({}, '', '/menu');
+    }
 
     // Check for active orders
     const checkActiveOrder = async () => {
@@ -310,17 +346,30 @@ export default function MenuPage() {
             <ArrowLeft size={24} />
           </button>
           <h1 className={styles.logo}>Cardápio</h1>
-          <button 
-            onClick={() => setIsCartOpen(true)}
-            className={`${styles.cartButton} ${showToast ? styles.pulse : ''}`}
-          >
-            <ShoppingBag size={24} />
-            {cart.length > 0 && (
-              <span className={styles.cartBadge}>
-                {cart.reduce((a, b) => a + b.quantity, 0)}
-              </span>
             )}
           </button>
+
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button 
+              onClick={() => setIsRecoveryOpen(true)}
+              className={styles.historyButton}
+              title="Acompanhar meu pedido"
+            >
+              <Search size={22} />
+            </button>
+            
+            <button 
+              onClick={() => setIsCartOpen(true)}
+              className={`${styles.cartButton} ${showToast ? styles.pulse : ''}`}
+            >
+              <ShoppingBag size={24} />
+              {cart.length > 0 && (
+                <span className={styles.cartBadge}>
+                  {cart.reduce((a, b) => a + b.quantity, 0)}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -629,6 +678,86 @@ export default function MenuPage() {
           </motion.div>
         </div>
       )}
+      {/* Recovery Modal */}
+      <AnimatePresence>
+        {isRecoveryOpen && (
+          <div className={styles.modalOverlay}>
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className={styles.modal}
+            >
+              <div className={styles.modalContent}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <h2 className={styles.modalTitle} style={{ margin: 0 }}>Meus Pedidos</h2>
+                  <button onClick={() => setIsRecoveryOpen(false)} style={{ background: 'none', border: 'none', color: '#666' }}>
+                    <X size={24} />
+                  </button>
+                </div>
+                
+                <p style={{ color: '#666', marginBottom: '1.5rem', textAlign: 'center' }}>
+                  Esqueceu de acompanhar seu pedido? Digite seu WhatsApp abaixo:
+                </p>
+
+                <div className={styles.formGroupFull} style={{ marginBottom: '1.5rem' }}>
+                  <input 
+                    type="tel" 
+                    placeholder="(11) 99999-9999" 
+                    value={recoveryPhone} 
+                    onChange={e => setRecoveryPhone(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && searchOrders()}
+                  />
+                  <button 
+                    onClick={searchOrders} 
+                    className={styles.submitBtn} 
+                    style={{ marginTop: '1rem' }}
+                    disabled={isSearching}
+                  >
+                    {isSearching ? 'Buscando...' : 'Buscar Pedidos'}
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {foundOrders.map(order => (
+                    <div 
+                      key={order.id} 
+                      style={{ 
+                        padding: '1rem', 
+                        background: '#f8f9fa', 
+                        borderRadius: '16px',
+                        border: '1px solid #eee',
+                        display: 'flex',
+                        justify-content: 'space-between',
+                        align-items: 'center'
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary)' }}>
+                          Pedido #{order.id.slice(-4).toUpperCase()}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#666' }}>
+                          Status: {order.status === 'received' ? 'Recebido' : order.status === 'preparing' ? 'Preparando' : order.status === 'ready' ? 'Pronto' : order.status === 'out_for_delivery' ? 'Em Entrega' : order.status === 'delivered' ? 'Entregue' : 'Cancelado'}
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => router.push(`/order/${order.id}`)}
+                        className={styles.addBtn}
+                        style={{ width: 'auto', padding: '0.5rem 1rem', borderRadius: '10px' }}
+                      >
+                        <ExternalLink size={16} /> Ver
+                      </button>
+                    </div>
+                  ))}
+                  {!isSearching && foundOrders.length === 0 && recoveryPhone && (
+                    <p style={{ textAlign: 'center', fontSize: '0.85rem', color: '#999' }}>Nenhum pedido recente encontrado.</p>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }

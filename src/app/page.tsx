@@ -52,12 +52,21 @@ export default function Home() {
             <p className={`${styles.heroSubtitle} notranslate`} translate="no">
               Refeições variadas e saborosas preparadas para garantir praticidade e nutrição no seu dia a dia.
             </p>
-            <button 
-              className={styles.btnOrderNow}
-              onClick={() => router.push('/menu')}
-            >
-              Ver Cardápio do Dia
-            </button>
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button 
+                className={styles.btnOrderNow}
+                onClick={() => router.push('/menu')}
+              >
+                Ver Cardápio do Dia
+              </button>
+              
+              <button 
+                className={styles.btnTrackOrder}
+                onClick={() => router.push('/menu?recovery=true')}
+              >
+                Acompanhar Pedido
+              </button>
+            </div>
           </motion.div>
         </div>
       </section>
