@@ -7,7 +7,8 @@
 /* Hero section */
 .hero {
   position: relative;
-  height: 90vh;
+  height: 100vh;
+  height: 100dvh; /* Dynamic viewport height for better mobile support */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -211,6 +212,40 @@
 
 /* Responsividade */
 @media (max-width: 768px) {
+  .heroContent {
+    padding: 1.5rem;
+  }
+
+  .heroTitle {
+    font-size: 2.2rem;
+    margin-bottom: 1rem;
+  }
+
+  .heroSubtitle {
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+  }
+
+  .btnOrderNow {
+    width: 100%;
+    max-width: 280px;
+    padding: 1rem 2rem;
+  }
+
+  .testimonialsSection {
+    padding: 4rem 1rem;
+  }
+
+  .sectionHeader h3 {
+    font-size: 1.8rem;
+    padding: 0 1rem;
+  }
+
+  .testimonialCard {
+    width: 280px;
+    padding: 1.5rem;
+  }
+
   .footerContentLanding {
     flex-direction: column;
     text-align: center;
