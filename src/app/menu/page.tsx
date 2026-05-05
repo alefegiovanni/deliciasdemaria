@@ -320,15 +320,27 @@ export default function MenuPage() {
         </div>
       </header>
 
-      {/* Store Closed Banner */}
-      {!isOpen && (
-        <div className={styles.closedBanner}>
-          <div className={styles.closedContent}>
-            <X size={20} />
-            <span><strong>LOJA FECHADA:</strong> Estamos fora do horário de atendimento.</span>
-          </div>
-        </div>
-      )}
+      {/* Store Closed Banner - Elegant Redesign */}
+      <AnimatePresence>
+        {!isOpen && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className={styles.closedBanner}
+          >
+            <div className={styles.closedContent}>
+              <div className={styles.closedIconWrapper}>
+                <X size={18} />
+              </div>
+              <div className={styles.closedText}>
+                <strong>Restaurante Fechado no Momento</strong>
+                <p>Ainda estamos preparando tudo ou já encerramos por hoje. Volte logo!</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Recovery Badge */}
       <AnimatePresence>
