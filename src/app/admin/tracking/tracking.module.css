@@ -14,6 +14,15 @@
   gap: 2rem;
 }
 
+@media (max-width: 768px) {
+  .header {
+    padding: 1rem;
+    gap: 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
 .backBtn {
   display: flex;
   align-items: center;
@@ -25,7 +34,13 @@
 .container {
   flex: 1;
   display: flex;
-  overflow: hidden;
+  overflow: auto;
+}
+
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+  }
 }
 
 .sidebar {
@@ -36,6 +51,17 @@
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 1.5rem;
+    height: auto;
+  }
 }
 
 .driverList {
@@ -120,72 +146,131 @@
   margin-top: 1rem;
 }
 
+.btnShowAddress {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--secondary);
+  color: var(--primary);
+  border: 1px solid rgba(212, 78, 109, 0.2);
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  transition: all 0.2s;
+}
+
+.btnShowAddress:active {
+  transform: scale(0.98);
+  background: var(--primary);
+  color: white;
+}
+
+.addressBox {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  line-height: 1.4;
+  overflow: hidden;
+}
+
 .mapArea {
   flex: 1;
-  background: #e5e7eb;
+  background: #f0f2f5;
   position: relative;
+  min-height: 400px;
 }
 
 .mapPlaceholder {
   height: 100%;
-  display: flex-center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-direction: column;
   color: #9ca3af;
   text-align: center;
+  padding: 2rem;
 }
 
 .mapGrid {
   position: absolute;
-  inset: 50px;
+  inset: 20px;
   background-image: radial-gradient(#d1d5db 1px, transparent 1px);
   background-size: 40px 40px;
   border: 2px solid #d1d5db;
   border-radius: 20px;
+  background-color: white;
+  box-shadow: inset 0 0 40px rgba(0,0,0,0.02);
+}
+
+@media (max-width: 768px) {
+  .mapGrid {
+    inset: 10px;
+  }
+  
+  .label {
+    padding: 0.15rem 0.4rem !important;
+    font-size: 0.65rem !important;
+  }
+
+  .restaurantePoint { top: 15% !important; left: 15% !important; }
+  .motoboyPoint { top: 40% !important; left: 35% !important; }
+  .destinatarioPoint { bottom: 15% !important; right: 15% !important; }
 }
 
 .restaurantePoint, .motoboyPoint, .destinatarioPoint {
   position: absolute;
-  width: 20px;
-  height: 20px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  z-index: 10;
 }
 
 .restaurantePoint {
   top: 20%;
   left: 20%;
-  background: var(--primary);
+  background: #ff7675;
 }
 
 .motoboyPoint {
   top: 45%;
   left: 40%;
-  background: var(--accent);
+  background: #0984e3;
   animation: move 5s infinite alternate ease-in-out;
 }
 
 .destinatarioPoint {
   bottom: 20%;
   right: 20%;
-  background: var(--text-main);
+  background: #2d3436;
 }
 
 @keyframes move {
   from { transform: translate(0, 0); }
-  to { transform: translate(50px, -20px); }
+  to { transform: translate(30px, -15px); }
 }
 
 .label {
   position: absolute;
-  top: -30px;
+  top: -24px;
   left: 50%;
   transform: translateX(-50%);
   background: white;
-  padding: 0.25rem 0.75rem;
+  padding: 0.2rem 0.6rem;
   border-radius: 4px;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
   white-space: nowrap;
   color: var(--text-main);
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  border: 1px solid #eee;
+  z-index: 11;
 }

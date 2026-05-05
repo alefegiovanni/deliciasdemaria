@@ -2,6 +2,8 @@
   min-height: 100vh;
   background: #f0f2f5;
   padding-bottom: 2rem;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .header {
@@ -14,6 +16,20 @@
   gap: 1rem;
   box-shadow: var(--shadow-md);
   margin-bottom: 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .header h1 {
+    font-size: 1.25rem;
+  }
 }
 
 .headerContent {
@@ -52,6 +68,63 @@
   padding: 0 1rem;
 }
 
+.selectionScreen {
+  text-align: center;
+  padding: 4rem 1rem;
+}
+
+.driverGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.driverBtn {
+  background: white;
+  border: 2px solid var(--border);
+  padding: 1.5rem 1rem;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  color: var(--text-main);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.driverBtn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--secondary);
+  transform: translateY(-2px);
+}
+
+.driverWelcome {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 2rem;
+  border: 1px solid var(--border);
+}
+
+.changeBtn {
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
 .sectionTitle {
   font-size: 1.25rem;
   color: var(--text-muted);
@@ -70,6 +143,18 @@
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
+}
+
+@media (max-width: 480px) {
+  .orderCard {
+    padding: 1rem;
+  }
+  
+  .driverWelcome {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 0.5rem;
+  }
 }
 
 .orderHead {
@@ -182,10 +267,43 @@
   gap: 0.5rem;
 }
 
-.activeAddress {
-  font-size: 1.25rem;
+.btnShowAddress {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.8rem;
+  background: #f8f9fa;
+  color: var(--primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 0.9rem;
   margin-bottom: 1rem;
-  line-height: 1.4;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.btnShowAddress:active {
+  background: var(--secondary);
+  transform: scale(0.98);
+}
+
+.addressBox {
+  background: #fff;
+  border: 1px dashed var(--primary);
+  padding: 1.25rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.activeAddress {
+  font-size: 1.15rem;
+  line-height: 1.5;
+  color: var(--text-main);
+  margin: 0;
 }
 
 .btnNav {

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lock, User, ChefHat, Truck } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { supabase } from '@/lib/supabase';
 import styles from './login.module.css';
 
 export default function LoginPage() {
@@ -12,17 +13,40 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const router = useRouter();
 
-  const handleLogin = (e: React.FormEvent) => {
+   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     
+    // Admin Login (Hardcoded)
     if (username === 'adminmaria' && password === 'maria1234') {
       localStorage.setItem('user_role', 'admin');
       router.push('/admin');
-    } else if (username === 'motoca1' && password === 'motoca1234') {
-      localStorage.setItem('user_role', 'driver');
-      router.push('/driver');
-    } else {
-      setError('Usuário ou senha incorretos.');
+      return;
+    }
+
+    // Driver Login (Database check)
+    try {
+      const { data: driver, error: dbError } = await supabase
+        .from('drivers')
+        .select('*')
+        .ilike('name', username)
+        .eq('pin', password)
+        .single();
+
+      if (driver && !dbError) {
+        if (!driver.active) {
+          setError('Sua conta está bloqueada. Fale com a Maria.');
+          return;
+        }
+        sessionStorage.setItem('user_role', 'driver');
+        sessionStorage.setItem('delicias_driver', JSON.stringify(driver));
+        router.push('/driver');
+      } else {
+        setError('Usuário ou PIN incorretos.');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Erro ao conectar ao servidor.');
     }
   };
 
@@ -36,7 +60,7 @@ export default function LoginPage() {
         <div className={styles.header}>
           <div className={styles.logo}>Delícias de Maria</div>
           <h1>Acesso Restrito</h1>
-          <p>Selecione seu perfil e faça login.</p>
+          <p>Digite seu usuário e senha para acessar.</p>
         </div>
 
         <form onSubmit={handleLogin} className={styles.form}>
@@ -48,21 +72,21 @@ export default function LoginPage() {
                 type="text" 
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Digite seu usuário"
+                placeholder="Ex: adminmaria ou seu nome"
                 required
               />
             </div>
           </div>
 
           <div className={styles.inputGroup}>
-            <label>Senha</label>
+            <label>Senha / PIN</label>
             <div className={styles.inputWrapper}>
               <Lock size={20} />
               <input 
                 type="password" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="Digite sua senha ou PIN"
                 required
               />
             </div>

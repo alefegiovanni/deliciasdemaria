@@ -2,6 +2,13 @@
   min-height: 100vh;
   background: var(--background);
   padding: 4rem 0;
+  overflow-x: hidden;
+}
+
+@media (max-width: 768px) {
+  .main {
+    padding: 1.5rem 0;
+  }
 }
 
 .header {
@@ -105,8 +112,23 @@
 
 .statusItem {
   display: flex;
-  gap: 2rem;
+  gap: 1.5rem;
   position: relative;
+}
+
+@media (max-width: 480px) {
+  .statusItem {
+    gap: 1rem;
+  }
+  
+  .statusIconWrapper {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .line {
+    top: 40px;
+  }
 }
 
 .statusIconWrapper {
@@ -116,7 +138,9 @@
   background: white;
   border: 2px solid var(--border);
   border-radius: 50%;
-  display: flex-center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--text-muted);
   flex-shrink: 0;
   z-index: 2;

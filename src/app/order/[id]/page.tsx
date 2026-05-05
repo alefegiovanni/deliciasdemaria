@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { Clock, CheckCircle2, Package, Truck, Utensils, Phone, MapPin, User, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
@@ -18,6 +18,8 @@ const statuses = [
 
 export default function OrderTracking() {
   const { id } = useParams();
+  const searchParams = useSearchParams();
+  const from = searchParams.get('from');
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -65,9 +67,12 @@ export default function OrderTracking() {
       <div className="container">
         <header className={styles.header}>
           <div className={styles.topNav}>
-            <Link href="/" className={styles.backLink}>
+            <Link 
+              href={from === 'admin' ? '/admin' : from === 'driver' ? '/driver' : '/'} 
+              className={styles.backLink}
+            >
               <ArrowLeft size={20} />
-              Cardápio
+              {from === 'admin' ? 'Painel Admin' : from === 'driver' ? 'Painel Motoboy' : 'Cardápio'}
             </Link>
           </div>
           <h1 className="font-serif">Status do seu Pedido</h1>

@@ -2,14 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Package, Search, Clock, Map as MapIcon, ChevronRight, CheckCircle2, Truck, AlertCircle, LogOut, Utensils, Trash2, Plus, ChefHat, Edit, Users, UserX, MessageCircle, MapPin, Bell, Store } from 'lucide-react';
+import { Package, Search, Clock, Map as MapIcon, ChevronRight, CheckCircle2, Truck, AlertCircle, LogOut, Utensils, Trash2, Plus, ChefHat, Edit, Users, UserX, MessageCircle, MapPin, Bell, Store, Link, Menu, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import styles from './admin.module.css';
 
 export default function KitchenDashboard() {
-  const [view, setView] = useState<'orders' | 'menu' | 'clients' | 'fees'>('orders');
+  const [view, setView] = useState<'orders' | 'menu' | 'clients' | 'fees' | 'drivers'>('orders');
   const [orders, setOrders] = useState<any[]>([]);
+  const [drivers, setDrivers] = useState<any[]>([]);
+  const [isDriverModalOpen, setIsDriverModalOpen] = useState(false);
+  const [editingDriver, setEditingDriver] = useState<any>(null);
+  const [newDriver, setNewDriver] = useState({ name: '', phone: '', pin: '' });
   const [lastOrderCount, setLastOrderCount] = useState(0);
   const [isOpen, setIsOpen] = useState(true);
   const [distanceFees, setDistanceFees] = useState<any[]>([]);
@@ -38,6 +42,10 @@ export default function KitchenDashboard() {
   });
   const [estimatedTime, setEstimatedTime] = useState(40);
   const [search, setSearch] = useState('');
+  const [showNewOrderAlert, setShowNewOrderAlert] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'received' | 'preparing' | 'ready' | 'out_for_delivery' | 'delivered' | 'cancelled'>('received');
+
   const router = useRouter();
 
   useEffect(() => {
@@ -51,11 +59,14 @@ export default function KitchenDashboard() {
     fetchSettings();
     fetchProducts();
     fetchClients();
+    fetchDrivers();
 
     const channel = supabase
       .channel('schema-db-changes')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
         playNotificationSound();
+        setShowNewOrderAlert(true);
+        setTimeout(() => setShowNewOrderAlert(false), 6000);
         fetchOrders();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => fetchOrders())
@@ -151,6 +162,57 @@ export default function KitchenDashboard() {
   const fetchClients = async () => {
     const { data } = await supabase.from('orders').select('*');
     if (data) extractClients(data);
+  };
+
+  const fetchDrivers = async () => {
+    const { data } = await supabase.from('drivers').select('*').order('name');
+    if (data) setDrivers(data);
+  };
+
+  const saveDriver = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newDriver.pin.length !== 4) {
+      alert('O PIN deve ter exatamente 4 dígitos.');
+      return;
+    }
+    
+    if (editingDriver) {
+      const { error } = await supabase.from('drivers').update(newDriver).eq('id', editingDriver.id);
+      if (!error) {
+        setIsDriverModalOpen(false);
+        setEditingDriver(null);
+        setNewDriver({ name: '', phone: '', pin: '' });
+        fetchDrivers();
+      } else {
+        alert('Erro ao atualizar: ' + error.message);
+      }
+    } else {
+      const { error } = await supabase.from('drivers').insert([newDriver]);
+      if (!error) {
+        setIsDriverModalOpen(false);
+        setNewDriver({ name: '', phone: '', pin: '' });
+        fetchDrivers();
+      } else {
+        alert('Erro ao salvar no banco: ' + error.message);
+      }
+    }
+  };
+
+  const toggleDriverStatus = async (id: string, currentStatus: boolean) => {
+    const { error } = await supabase.from('drivers').update({ active: !currentStatus }).eq('id', id);
+    if (!error) fetchDrivers();
+  };
+
+  const copyDriverLink = (driverId: string) => {
+    const link = `${window.location.origin}/driver?token=${driverId}`;
+    navigator.clipboard.writeText(link);
+    alert('Link exclusivo copiado! Envie pelo WhatsApp para este motoboy acessar o painel dele.');
+  };
+
+  const deleteDriver = async (id: string) => {
+    if (!confirm('Deseja excluir este motoboy?')) return;
+    await supabase.from('drivers').delete().eq('id', id);
+    fetchDrivers();
   };
 
   const fetchSettings = async () => {
@@ -305,37 +367,57 @@ export default function KitchenDashboard() {
     <main className={styles.main}>
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
-          <ChefHat size={32} className={styles.logoIcon} />
-          <h1 className="font-serif italic">Maria Admin</h1>
+          <div className={styles.sidebarBrandGroup}>
+            <ChefHat size={32} className={styles.logoIcon} />
+            <h1 className="font-serif italic">Maria Admin</h1>
+          </div>
+          <button 
+            className={styles.mobileMenuBtn} 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+          </button>
         </div>
-        <nav className={styles.nav}>
+        <nav className={`${styles.nav} ${isMobileMenuOpen ? styles.navOpen : ''}`}>
           <button 
             className={view === 'orders' ? styles.navItemActive : styles.navItem} 
-            onClick={() => setView('orders')}
+            onClick={() => { setView('orders'); setIsMobileMenuOpen(false); }}
           >
             <Package size={20} /> Pedidos
           </button>
+
           
           <button 
             className={view === 'menu' ? styles.navItemActive : styles.navItem} 
-            onClick={() => { setView('menu'); fetchProducts(); }}
+            onClick={() => { setView('menu'); fetchProducts(); setIsMobileMenuOpen(false); }}
           >
             <Utensils size={20} /> Cardápio
           </button>
 
+
           <button 
             className={view === 'clients' ? styles.navItemActive : styles.navItem} 
-            onClick={() => { setView('clients'); fetchClients(); }}
+            onClick={() => { setView('clients'); fetchClients(); setIsMobileMenuOpen(false); }}
           >
             <Users size={20} /> Clientes
           </button>
 
+
           <button 
             className={view === 'fees' ? styles.navItemActive : styles.navItem} 
-            onClick={() => { setView('fees'); fetchSettings(); }}
+            onClick={() => { setView('fees'); fetchSettings(); setIsMobileMenuOpen(false); }}
           >
             <Truck size={20} /> Taxas de Entrega
           </button>
+
+
+          <button 
+            className={view === 'drivers' ? styles.navItemActive : styles.navItem} 
+            onClick={() => { setView('drivers'); fetchDrivers(); setIsMobileMenuOpen(false); }}
+          >
+            <Users size={20} /> Motoboys
+          </button>
+
 
           <button className={styles.navItem} onClick={() => window.location.href='/admin/tracking'}>
             <MapIcon size={20} /> Rastreamento
@@ -344,6 +426,9 @@ export default function KitchenDashboard() {
             <LogOut size={20} /> Sair
           </button>
         </nav>
+        {isMobileMenuOpen && (
+          <div className={styles.mobileOverlay} onClick={() => setIsMobileMenuOpen(false)}></div>
+        )}
       </aside>
 
       <div className={styles.content}>
@@ -351,14 +436,16 @@ export default function KitchenDashboard() {
           <div className={styles.headerTitle}>
             <h2>
               {view === 'orders' ? 'Painel de Pedidos' : 
-               view === 'menu' ? 'Gerenciar Cardápio' : 
-               view === 'clients' ? 'Gestão de Clientes' :
+               view === 'menu' ? 'Cardápio' : 
+               view === 'clients' ? 'Clientes' :
+               view === 'drivers' ? 'Motoboys' :
                'Taxas por Distância'}
             </h2>
             <p>
               {view === 'orders' ? 'Gerencie os pedidos em tempo real.' : 
                view === 'menu' ? 'Organize seus pratos e preços.' : 
                view === 'clients' ? 'Histórico e dados dos seus clientes.' :
+               view === 'drivers' ? 'Cadastre e gerencie seus entregadores.' :
                'Defina valores de entrega por raio de quilometragem.'}
             </p>
           </div>
@@ -366,7 +453,12 @@ export default function KitchenDashboard() {
           <div className={styles.headerActions}>
             <button 
               className={styles.btnSoundTest}
-              onClick={playNotificationSound}
+              onClick={() => {
+                playNotificationSound();
+                const btn = document.activeElement as HTMLElement;
+                btn.style.transform = 'scale(1.2)';
+                setTimeout(() => btn.style.transform = '', 200);
+              }}
               title="Testar som de notificação"
             >
               <Bell size={18} />
@@ -382,42 +474,71 @@ export default function KitchenDashboard() {
 
             {view === 'menu' && (
               <button className={styles.btnAddItemMain} onClick={() => { 
-                setNewProduct({...newProduct, category: 'Pratos'});
+                setNewProduct({ name: '', description: '', price: '', category: 'Pratos', image: '' });
+                setEditingProduct(null);
                 setIsModalOpen(true); 
               }}>
-                <Plus size={20} /> Novo Prato
+                <Plus size={18} /> Novo Prato
               </button>
             )}
             <div className={styles.prepTimeControl}>
-              <Clock size={18} />
-              <span>Tempo de Preparo:</span>
+              <Clock size={16} />
+              <span>Preparo:</span>
               <input 
                 type="number" 
                 value={estimatedTime} 
                 onChange={(e) => updatePrepTime(Number(e.target.value))}
                 className={styles.timeInput}
               />
-              <span>min</span>
+              <small>min</small>
             </div>
           </div>
         </header>
 
         {view === 'orders' && (
           <>
+            {showNewOrderAlert && (
+              <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={styles.newOrderAlert}
+              >
+                <AlertCircle size={24} />
+                <span>MAIS UM PEDIDO RECEBIDO!</span>
+                <AlertCircle size={24} />
+              </motion.div>
+            )}
             <section className={styles.statsGrid}>
-              <div className={styles.statCard}>
+              <div 
+                className={`${styles.statCard} ${statusFilter === 'received' ? styles.statCardActive : ''}`}
+                onClick={() => setStatusFilter('received')}
+              >
                 <p>Pendentes</p>
                 <h3>{orders.filter(o => o.status === 'received').length}</h3>
               </div>
-              <div className={styles.statCard}>
+              <div 
+                className={`${styles.statCard} ${statusFilter === 'preparing' ? styles.statCardActive : ''}`}
+                onClick={() => setStatusFilter('preparing')}
+              >
                 <p>Em Preparo</p>
                 <h3>{orders.filter(o => o.status === 'preparing').length}</h3>
               </div>
-              <div className={styles.statCard}>
+              <div 
+                className={`${styles.statCard} ${statusFilter === 'out_for_delivery' ? styles.statCardActive : ''}`}
+                onClick={() => setStatusFilter('out_for_delivery')}
+              >
                 <p>Em Rota</p>
                 <h3>{orders.filter(o => o.status === 'out_for_delivery').length}</h3>
               </div>
+              <div 
+                className={`${styles.statCard} ${statusFilter === 'delivered' ? styles.statCardActive : ''} ${styles.statCardHistory}`}
+                onClick={() => setStatusFilter('delivered')}
+              >
+                <p>Histórico</p>
+                <small>Ver Concluídos</small>
+              </div>
             </section>
+
 
             <div className={styles.orderContainer}>
               <div className={styles.searchBar}>
@@ -441,7 +562,14 @@ export default function KitchenDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.filter(o => o.customer_name?.toLowerCase().includes(search.toLowerCase()) || o.id.includes(search)).map(order => (
+                  {orders
+                    .filter(o => {
+                      const matchesSearch = o.customer_name?.toLowerCase().includes(search.toLowerCase()) || o.id.includes(search);
+                      const matchesStatus = statusFilter === 'all' || o.status === statusFilter;
+                      return matchesSearch && matchesStatus;
+                    })
+                    .map(order => (
+
                     <tr key={order.id}>
                       <td>#{order.id.slice(0, 5)}</td>
                       <td>
@@ -451,7 +579,22 @@ export default function KitchenDashboard() {
                         </div>
                       </td>
                       <td className={styles.itemsCell}>
-                        {order.items?.map((it: any) => `${it.qty}x ${it.name}`).join(', ')}
+                        <div className={styles.itemList}>
+                          {order.items?.map((it: any, idx: number) => (
+                            <div key={idx} className={styles.orderItemRow}>
+                              <div className={styles.itemMainInfo}>
+                                <span className={styles.itemQty}>{it.qty}x</span>
+                                <span className={styles.itemName}>{it.name}</span>
+                              </div>
+                              {it.observation && (
+                                <div className={styles.itemObservation}>
+                                  <MessageCircle size={14} />
+                                  <span>{it.observation}</span>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </td>
                       <td>
                         <span className={`${styles.statusTag} ${styles[order.status]}`}>
@@ -469,7 +612,27 @@ export default function KitchenDashboard() {
                           {order.status === 'ready' && (
                             <button onClick={() => updateStatus(order.id, 'out_for_delivery')} className={styles.btnShip}>Enviar</button>
                           )}
-                          <button className={styles.btnDetails}><ChevronRight size={18} /></button>
+                          {order.status !== 'delivered' && order.status !== 'cancelled' && (
+                            <button 
+                              onClick={() => {
+                                if(confirm('Deseja realmente CANCELAR este pedido?')) {
+                                  updateStatus(order.id, 'cancelled');
+                                }
+                              }} 
+                              className={styles.btnCancel}
+                              title="Cancelar Pedido"
+                            >
+                              <UserX size={18} />
+                            </button>
+                          )}
+                          <button 
+                            className={styles.btnDetails} 
+                            onClick={() => router.push(`/order/${order.id}?from=admin`)}
+                            title="Ver detalhes do pedido"
+                          >
+                            <ChevronRight size={18} />
+                          </button>
+
                         </div>
                       </td>
                     </tr>
@@ -488,9 +651,6 @@ export default function KitchenDashboard() {
                   <div className={styles.categoryTitle}>
                     <ChevronRight className={styles.chevron} />
                     <h3>{category}</h3>
-                    <span className={styles.itemCount}>
-                      {productsList.filter(p => p.category === category).length} itens
-                    </span>
                   </div>
                   <button className={styles.btnAddSub} onClick={(e) => {
                     e.preventDefault();
@@ -610,12 +770,28 @@ export default function KitchenDashboard() {
                     </div>
                     <div className={styles.inputGroup}>
                       <label>Link da Foto (URL)</label>
-                      <input 
-                        type="text" 
-                        value={newProduct.image}
-                        placeholder="https://exemplo.com/foto.jpg"
-                        onChange={(e) => setNewProduct({...newProduct, image: e.target.value})}
-                      />
+                      <div className={styles.imageInputWrapper}>
+                        <input 
+                          type="text" 
+                          value={newProduct.image}
+                          placeholder="https://exemplo.com/foto.jpg"
+                          onChange={(e) => setNewProduct({...newProduct, image: e.target.value})}
+                        />
+                        {newProduct.image && (
+                          <button 
+                            type="button" 
+                            className={styles.btnRemovePhoto}
+                            onClick={() => setNewProduct({...newProduct, image: ''})}
+                          >
+                            Remover Foto
+                          </button>
+                        )}
+                      </div>
+                      {newProduct.image && (
+                        <div className={styles.photoPreview}>
+                          <img src={newProduct.image} alt="Preview" />
+                        </div>
+                      )}
                     </div>
                     <button type="submit" className={styles.btnSave}>
                       {editingProduct ? 'Salvar Alterações' : 'Adicionar ao Cardápio'}
@@ -666,17 +842,6 @@ export default function KitchenDashboard() {
                     </td>
                     <td>
                       <div className={styles.actions}>
-                        <button 
-                          className={styles.btnWhatsapp}
-                          onClick={() => {
-                            const cleanPhone = client.phone.replace(/\D/g, '');
-                            const message = encodeURIComponent("Deu fome? Faça um pedido agora mesmo! 😋");
-                            window.open(`https://wa.me/55${cleanPhone}?text=${message}`, '_blank');
-                          }}
-                          title="Enviar WhatsApp"
-                        >
-                          <MessageCircle size={18} />
-                        </button>
                         <button 
                           className={styles.btnDetails}
                           onClick={() => {
@@ -743,7 +908,7 @@ export default function KitchenDashboard() {
                       className={styles.btnWhatsappLarge}
                       onClick={() => {
                         const cleanPhone = selectedClient.phone.replace(/\D/g, '');
-                        const message = encodeURIComponent("Olá " + selectedClient.name + "! Deu fome? Faça um pedido agora mesmo! 😋");
+                        const message = encodeURIComponent("Olá " + selectedClient.name + "!");
                         window.open(`https://wa.me/55${cleanPhone}?text=${message}`, '_blank');
                       }}
                     >
@@ -837,24 +1002,24 @@ export default function KitchenDashboard() {
 
             <div className={styles.feeForm}>
               <div className={styles.inputGroup}>
-                <label>Até quantos Km?</label>
+                <label>Distância Máxima (km)</label>
                 <input 
                   type="number" 
-                  placeholder="Ex: 3" 
                   value={newDistanceFee.maxKm}
                   onChange={(e) => setNewDistanceFee({...newDistanceFee, maxKm: e.target.value})}
+                  placeholder="Ex: 5"
                 />
               </div>
               <div className={styles.inputGroup}>
                 <label>Valor da Taxa (R$)</label>
                 <input 
                   type="number" 
-                  placeholder="0.00" 
                   value={newDistanceFee.price}
                   onChange={(e) => setNewDistanceFee({...newDistanceFee, price: e.target.value})}
+                  placeholder="Ex: 7.00"
                 />
               </div>
-              <button className={styles.btnAddItemMain} onClick={addDistanceFee}>
+              <button className={styles.btnSaveRule} onClick={addDistanceFee}>
                 <Plus size={20} /> Adicionar Regra
               </button>
             </div>
@@ -889,6 +1054,102 @@ export default function KitchenDashboard() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {view === 'drivers' && (
+          <>
+            <div className={styles.driversContainer}>
+               <div className={styles.adminActionHeader}>
+                <button className={styles.btnAddItemMain} onClick={() => setIsDriverModalOpen(true)}>
+                  <Plus size={20} /> Novo Motoboy
+                </button>
+              </div>
+
+              <div className={styles.driversList}>
+                {drivers.map(driver => (
+                  <div key={driver.id} className={styles.driverCard}>
+                    <div className={styles.driverHeader}>
+                      <div className={styles.driverInfoMain}>
+                        <strong className={styles.driverName}>{driver.name}</strong>
+                        <span className={styles.driverPhone}>{driver.phone}</span>
+                      </div>
+                      <button 
+                        onClick={() => toggleDriverStatus(driver.id, driver.active)}
+                        className={`${styles.statusToggle} ${driver.active ? styles.active : styles.inactive}`}
+                      >
+                        {driver.active ? 'Ativo' : 'Inativo'}
+                      </button>
+                    </div>
+                    
+                    <div className={styles.driverActions}>
+                      <button 
+                        onClick={() => copyDriverLink(driver.id)} 
+                        className={styles.btnCopyLink}
+                      >
+                        <Link size={18} /> Copiar Link de Acesso
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setEditingDriver(driver);
+                          setNewDriver({ name: driver.name, phone: driver.phone || '', pin: driver.pin || '' });
+                          setIsDriverModalOpen(true);
+                        }} 
+                        className={styles.btnEditDriver}
+                      >
+                        <Edit size={18} />
+                      </button>
+                      <button onClick={() => deleteDriver(driver.id)} className={styles.btnDeleteDriver}>
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {isDriverModalOpen && (
+              <div className={styles.modalOverlay}>
+                <div className={styles.modal}>
+                  <div className={styles.modalHeader}>
+                    <h4>{editingDriver ? 'Editar Motoboy' : 'Cadastrar Motoboy'}</h4>
+                    <button onClick={() => { setIsDriverModalOpen(false); setEditingDriver(null); setNewDriver({ name: '', phone: '', pin: '' }); }}>X</button>
+                  </div>
+                  <form onSubmit={saveDriver} className={styles.modalForm}>
+                    <div className={styles.inputGroup}>
+                      <label>Nome do Motoboy</label>
+                      <input 
+                        type="text" 
+                        required 
+                        value={newDriver.name}
+                        onChange={(e) => setNewDriver({...newDriver, name: e.target.value})}
+                      />
+                    </div>
+                    <div className={styles.inputGroup}>
+                      <label>Telefone / WhatsApp</label>
+                      <input 
+                        type="text" 
+                        placeholder="(00) 00000-0000"
+                        value={newDriver.phone}
+                        onChange={(e) => setNewDriver({...newDriver, phone: e.target.value})}
+                      />
+                    </div>
+                    <div className={styles.inputGroup}>
+                      <label>PIN de Acesso (4 dígitos)</label>
+                      <input 
+                        type="text" 
+                        maxLength={4}
+                        placeholder="Ex: 1234"
+                        required 
+                        value={newDriver.pin}
+                        onChange={(e) => setNewDriver({...newDriver, pin: e.target.value.replace(/\D/g, '')})}
+                      />
+                    </div>
+                    <button type="submit" className={styles.btnSave}>Salvar Motoboy</button>
+                  </form>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </main>

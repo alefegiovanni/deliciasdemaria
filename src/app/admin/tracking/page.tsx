@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Map as MapIcon, User, Navigation, CheckCircle2, ChevronLeft, MapPin, LogOut } from 'lucide-react';
+import { Map as MapIcon, User, Navigation, CheckCircle2, ChevronLeft, MapPin, LogOut, Truck } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import styles from './tracking.module.css';
 
 export default function AdminTracking() {
   const [selectedDriver, setSelectedDriver] = useState<any>(null);
   const [drivers, setDrivers] = useState<any[]>([]);
+  const [showAddress, setShowAddress] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -42,12 +44,19 @@ export default function AdminTracking() {
   const fetchActiveTracking = async () => {
     const { data: activeOrders } = await supabase
       .from('orders')
-      .select('id, customer_name, status, address')
+      .select('id, customer_name, status, address, driver_id')
       .eq('status', 'out_for_delivery');
 
     if (activeOrders && activeOrders.length > 0) {
       const driverLocations = await Promise.all(
         activeOrders.map(async (order) => {
+          // Fetch driver name
+          let driverName = `Pedido #${order.id.slice(0,5)}`;
+          if (order.driver_id) {
+            const { data: driverData } = await supabase.from('drivers').select('name').eq('id', order.driver_id).single();
+            if (driverData) driverName = driverData.name;
+          }
+
           const { data: logs } = await supabase
             .from('tracking_logs')
             .select('*')
@@ -58,18 +67,27 @@ export default function AdminTracking() {
           if (logs && logs.length > 0) {
             return {
               id: order.id,
-              name: `Pedido #${order.id.slice(0,5)}`,
+              orderId: order.id.slice(0, 5),
+              name: driverName,
               customer: order.customer_name,
               address: order.address,
               lat: logs[0].lat,
               lng: logs[0].lng,
+              location: `${logs[0].lat.toFixed(4)}, ${logs[0].lng.toFixed(4)}`,
               status: 'Em Rota'
             };
           }
           return null;
         })
       );
-      setDrivers(driverLocations.filter(d => d !== null));
+      const filtered = driverLocations.filter(d => d !== null);
+      setDrivers(filtered);
+      
+      // Keep selection if it exists
+      if (selectedDriver) {
+        const stillActive = filtered.find(d => d.id === selectedDriver.id);
+        if (stillActive) setSelectedDriver(stillActive);
+      }
     } else {
       setDrivers([]);
     }
@@ -81,12 +99,12 @@ export default function AdminTracking() {
         <button onClick={() => window.location.href = '/admin'} className={styles.backBtn}>
           <ChevronLeft /> Voltar ao Painel
         </button>
-        <h1>Rastreamento em Tempo Real</h1>
+        <h1>Rastreamento de Pedidos</h1>
       </header>
 
       <div className={styles.container}>
         <div className={styles.sidebar}>
-          <h3>Motoboys Ativos</h3>
+          <h3>Entregas em Rota</h3>
           <div className={styles.driverList}>
             {drivers.map(driver => (
               <div 
@@ -95,13 +113,12 @@ export default function AdminTracking() {
                 onClick={() => setSelectedDriver(driver)}
               >
                 <div className={styles.driverInfo}>
-                  <div className={styles.avatar}><User size={20} /></div>
+                  <div className={styles.avatar}><Truck size={20} /></div>
                   <div>
                     <strong>{driver.name}</strong>
-                    <p>{driver.status}</p>
+                    <p>{driver.status} - Pedido #{driver.orderId}</p>
                   </div>
                 </div>
-                {driver.orderId !== '-' && <span className={styles.orderBadge}>#{driver.orderId}</span>}
               </div>
             ))}
           </div>
@@ -109,11 +126,26 @@ export default function AdminTracking() {
           {selectedDriver && selectedDriver.orderId !== '-' && (
             <div className={styles.orderDetails}>
               <h4>Detalhes da Entrega</h4>
-              <div className={styles.detailRow}>
-                <MapPin size={16} />
-                <span>Destino: {selectedDriver.address}</span>
-              </div>
-              <div className={styles.detailRow}>
+              
+              <button 
+                className={styles.btnShowAddress}
+                onClick={() => setShowAddress(!showAddress)}
+              >
+                <MapPin size={18} />
+                {showAddress ? 'Ocultar Endereço' : 'Ver Endereço de Entrega'}
+              </button>
+
+              {showAddress && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className={styles.addressBox}
+                >
+                  <p>{selectedDriver.address}</p>
+                </motion.div>
+              )}
+
+              <div className={styles.detailRow} style={{ marginTop: '1rem' }}>
                 <Navigation size={16} />
                 <span>Localização Atual: {selectedDriver.location}</span>
               </div>
@@ -128,13 +160,12 @@ export default function AdminTracking() {
         <div className={styles.mapArea}>
           <div className={styles.mapPlaceholder}>
             <div className={styles.mapIcon}><MapIcon size={64} /></div>
-            <p>Mapa de Rastreamento Interno</p>
+            <p>Mapa de Rastreamento em Tempo Real</p>
             <span>Aguardando sinal de GPS do Motoboy...</span>
             
-            {/* Visual simulation of the map */}
             <div className={styles.mapGrid}>
               <div className={styles.restaurantePoint}>
-                <div className={styles.label}>Delícias de Maria</div>
+                <div className={styles.label}>Restaurante</div>
               </div>
               {selectedDriver && selectedDriver.orderId !== '-' && (
                 <div className={styles.motoboyPoint}>

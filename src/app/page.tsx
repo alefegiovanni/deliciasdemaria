@@ -22,6 +22,8 @@ export default function Home() {
   const [storeAddress, setStoreAddress] = useState('');
   const [calculatingFee, setCalculatingFee] = useState(false);
   const [distance, setDistance] = useState<number | null>(null);
+  const [showToast, setShowToast] = useState(false);
+  const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
 
   // Form states
   const [customerName, setCustomerName] = useState('');
@@ -37,6 +39,47 @@ export default function Home() {
   useEffect(() => {
     fetchProducts();
     fetchSettings();
+
+    // Check for active orders
+    const checkActiveOrder = async () => {
+      const lastId = localStorage.getItem('last_order_id');
+      if (lastId) {
+        const { data } = await supabase
+          .from('orders')
+          .select('id, status')
+          .eq('id', lastId)
+          .single();
+        
+        if (data && data.status !== 'delivered' && data.status !== 'cancelled') {
+          setActiveOrderId(data.id);
+
+          // Listen for real-time status changes to hide badge automatically
+          const channel = supabase
+            .channel(`public:orders:id=eq.${data.id}`)
+            .on('postgres_changes', { 
+              event: 'UPDATE', 
+              schema: 'public', 
+              table: 'orders', 
+              filter: `id=eq.${data.id}` 
+            }, (payload: any) => {
+              if (payload.new.status === 'delivered' || payload.new.status === 'cancelled') {
+                setActiveOrderId(null);
+                localStorage.removeItem('last_order_id');
+                supabase.removeChannel(channel);
+              }
+            })
+            .subscribe();
+          
+          return channel;
+        }
+      }
+      return null;
+    };
+    
+    let trackingChannel: any;
+    checkActiveOrder().then(channel => {
+      trackingChannel = channel;
+    });
 
     // Load saved address
     const saved = localStorage.getItem('delicias_address');
@@ -60,6 +103,10 @@ export default function Home() {
         console.error('Error loading saved address', e);
       }
     }
+
+    return () => {
+      if (trackingChannel) supabase.removeChannel(trackingChannel);
+    };
   }, []);
 
   const saveAddress = () => {
@@ -91,14 +138,30 @@ export default function Home() {
 
   const getCoordinates = async (address: string) => {
     try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`);
-      const data = await response.json();
+      // Add city and country to ensure better results
+      const searchAddr = address.includes('Caçapava') ? address : `${address}, Caçapava, SP, Brasil`;
+      console.log(`Tentativa 1: "${searchAddr}"`);
+      
+      let response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchAddr)}&limit=1`);
+      let data = await response.json();
+
+      // If fails, try a simpler version (without number/details)
+      if (!data || data.length === 0) {
+        const simpleAddr = address.split(',')[0] + ', Caçapava, SP, Brasil';
+        console.log(`Tentativa 2 (Simples): "${simpleAddr}"`);
+        response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(simpleAddr)}&limit=1`);
+        data = await response.json();
+      }
+
       if (data && data.length > 0) {
+        console.log(`Sucesso! Coordenadas: ${data[0].lat}, ${data[0].lon}`);
         return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
       }
+
+      console.warn(`Mapa não encontrou: "${address}"`);
       return null;
     } catch (error) {
-      console.error('Erro ao buscar coordenadas:', error);
+      console.error('Erro de conexão com serviço de mapas:', error);
       return null;
     }
   };
@@ -115,25 +178,34 @@ export default function Home() {
     return R * c;
   };
 
-  const updateDeliveryFee = async (customerAddr: string) => {
-    if (!customerAddr || !storeAddress) return;
+   const updateDeliveryFee = async (customerAddr: string) => {
+    if (!customerAddr || !storeAddress) {
+      console.warn('Cálculo ignorado: endereço do cliente ou da loja ausente.', { customerAddr, storeAddress });
+      return;
+    }
     setCalculatingFee(true);
     
+    console.log('Calculando frete para:', customerAddr);
     const storeCoords = await getCoordinates(storeAddress);
     const customerCoords = await getCoordinates(customerAddr);
 
     if (storeCoords && customerCoords) {
       const dist = calculateDistance(storeCoords.lat, storeCoords.lon, customerCoords.lat, customerCoords.lon);
+      console.log(`Distância calculada: ${dist.toFixed(2)} km`);
       setDistance(dist);
 
       // Find appropriate fee
       const feeRule = distanceFees.find(f => dist <= f.maxKm);
       if (feeRule) {
         setSelectedFee(feeRule.price);
+        console.log(`Taxa aplicada: R$ ${feeRule.price}`);
       } else {
-        // If outside all ranges, maybe set a high fee or 0 and warn
-        setSelectedFee(distanceFees[distanceFees.length - 1]?.price || 0);
+        const lastFee = distanceFees[distanceFees.length - 1]?.price || 0;
+        setSelectedFee(lastFee);
+        console.log(`Fora do raio. Aplicando taxa padrão: R$ ${lastFee}`);
       }
+    } else {
+      console.error('Não foi possível obter coordenadas para o cálculo.');
     }
     setCalculatingFee(false);
   };
@@ -149,13 +221,20 @@ export default function Home() {
           setCity(data.localidade);
           setNeighborhood(data.bairro);
           
-          // Trigger distance calculation
+          // Trigger distance calculation with current number if exists
           const fullAddress = `${data.logradouro}, ${number}, ${data.bairro}, ${data.localidade}`;
           updateDeliveryFee(fullAddress);
         }
       } catch (err) {
         console.error('Erro ao buscar CEP', err);
       }
+    }
+  };
+
+  const handleNumberBlur = () => {
+    if (street && number) {
+      const fullAddress = `${street}, ${number}, ${neighborhood}, ${city}`;
+      updateDeliveryFee(fullAddress);
     }
   };
 
@@ -169,6 +248,10 @@ export default function Home() {
       }
       return [...prev, { product, quantity: 1 }];
     });
+    
+    // Show feedback
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
   };
 
   const removeFromCart = (productId: string) => {
@@ -204,6 +287,7 @@ export default function Home() {
       
       const newOrder = await createOrder(orderData);
       setOrderId(newOrder.id);
+      localStorage.setItem('last_order_id', newOrder.id);
       setStep('success');
       setCart([]); // Clear cart
     } catch (err: any) {
@@ -216,13 +300,37 @@ export default function Home() {
 
   return (
     <main className={styles.main}>
+      {/* Recovery Badge */}
+      <AnimatePresence>
+        {activeOrderId && step === 'menu' && (
+          <motion.div 
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className={styles.recoveryBadge}
+            onClick={() => window.location.href = `/order/${activeOrderId}`}
+          >
+            <div className={styles.recoveryInfo}>
+              <div className={styles.pulseContainerSmall}>
+                <div className={styles.pulseDotSmall} />
+              </div>
+              <div>
+                <strong>Pedido em andamento!</strong>
+                <p>Clique para acompanhar a entrega</p>
+              </div>
+            </div>
+            <ChevronRight size={20} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <header className={styles.header}>
-        <div className="container flex-between">
+        <div className={styles.headerContainer}>
           <h1 className={styles.logo}>Delícias de Maria</h1>
           <button 
             onClick={() => setIsCartOpen(true)}
-            className={styles.cartButton}
+            className={`${styles.cartButton} ${showToast ? styles.pulse : ''}`}
           >
             <ShoppingBag size={24} />
             {cart.length > 0 && (
@@ -233,6 +341,21 @@ export default function Home() {
           </button>
         </div>
       </header>
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div 
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 20 }}
+            exit={{ opacity: 0, y: -50 }}
+            className={styles.toast}
+          >
+            <CheckCircle2 size={20} />
+            <span>Adicionado ao carrinho!</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Hero */}
       <section className={styles.hero}>
@@ -362,15 +485,60 @@ export default function Home() {
 
               {cart.length > 0 && (
                 <div className={styles.drawerFooter}>
+                  <div className={styles.addressSection}>
+                    <div className={styles.addressHeader}>
+                      <MapPin size={18} />
+                      <span>Onde entregamos?</span>
+                    </div>
+                    
+                    <div className={styles.cepRow}>
+                      <input 
+                        type="text" 
+                        placeholder="Seu CEP" 
+                        value={cep}
+                        onChange={(e) => setCep(e.target.value)}
+                        onBlur={handleCEPBlur}
+                        className={styles.cepInput}
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="Nº" 
+                        value={number}
+                        onChange={(e) => setNumber(e.target.value)}
+                        onBlur={handleNumberBlur}
+                        className={styles.numberInput}
+                      />
+                      {calculatingFee && <span className={styles.loadingFee}>...</span>}
+                    </div>
+
+                    {street ? (
+                      <div className={styles.addressDisplay}>
+                        <p>{street}, {number || 'S/N'}</p>
+                        <p>{neighborhood} - {city}</p>
+                      </div>
+                    ) : (
+                      <p className={styles.addressDisplay}>Informe o CEP para calcular a entrega</p>
+                    )}
+                  </div>
+
+                  <div className={styles.totalRow}>
+                    <span>Subtotal</span>
+                    <span>R$ {cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0).toFixed(2)}</span>
+                  </div>
                   <div className={styles.totalRow}>
                     <span>Taxa de Entrega {distance && <small>({distance.toFixed(1)}km)</small>}</span>
                     <span>{calculatingFee ? 'Calculando...' : `R$ ${selectedFee.toFixed(2)}`}</span>
                   </div>
+                  <div className={styles.finalTotal}>
+                    <span>Total</span>
+                    <span>R$ {total.toFixed(2)}</span>
+                  </div>
                   <button 
                     onClick={() => { setIsCartOpen(false); setStep('checkout'); }}
                     className={styles.checkoutBtn}
+                    disabled={!street || calculatingFee}
                   >
-                    Finalizar Pedido
+                    {street ? 'Finalizar Pedido' : 'Informe o CEP'}
                   </button>
                 </div>
               )}
@@ -410,7 +578,9 @@ export default function Home() {
                         onChange={(e) => setCustomerName(e.target.value)}
                       />
                     </div>
-                                    <div className={styles.formGroupFull}>
+                  </div>
+
+                  <div className={styles.formGroupFull}>
                     <label>Endereço de Entrega</label>
                     <div className={styles.addressSummary}>
                       <MapPin size={20} />
@@ -422,7 +592,7 @@ export default function Home() {
                         Alterar
                       </button>
                     </div>
-                  </div>     </div>
+                  </div>
                   
                   <div className={styles.formGroup}>
                     <label>WhatsApp</label>
