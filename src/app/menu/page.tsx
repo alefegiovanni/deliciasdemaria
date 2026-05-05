@@ -82,6 +82,22 @@ export default function MenuPage() {
       trackingChannel = channel;
     });
 
+    // Real-time store status
+    const settingsChannel = supabase
+      .channel('store-settings')
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'settings', 
+        filter: 'id=eq.delicias_maria' 
+      }, (payload: any) => {
+        if (payload.new) {
+          setIsOpen(payload.new.is_open ?? true);
+          setEstimatedTime(payload.new.prep_time_minutes);
+        }
+      })
+      .subscribe();
+
     // Load saved address
     const saved = localStorage.getItem('delicias_address');
     if (saved) {
@@ -106,6 +122,7 @@ export default function MenuPage() {
 
     return () => {
       if (trackingChannel) supabase.removeChannel(trackingChannel);
+      supabase.removeChannel(settingsChannel);
     };
   }, []);
 
@@ -221,6 +238,10 @@ export default function MenuPage() {
   };
 
   const addToCart = (product: any) => {
+    if (!isOpen) {
+      alert('Desculpe, a loja está fechada no momento.');
+      return;
+    }
     setCart(prev => {
       const existing = prev.find(item => item.product.id === product.id);
       if (existing) {
@@ -298,6 +319,16 @@ export default function MenuPage() {
           </button>
         </div>
       </header>
+
+      {/* Store Closed Banner */}
+      {!isOpen && (
+        <div className={styles.closedBanner}>
+          <div className={styles.closedContent}>
+            <X size={20} />
+            <span><strong>LOJA FECHADA:</strong> Estamos fora do horário de atendimento.</span>
+          </div>
+        </div>
+      )}
 
       {/* Recovery Badge */}
       <AnimatePresence>
@@ -499,10 +530,10 @@ export default function MenuPage() {
 
                  <button 
                    className={styles.checkoutBtn}
-                   disabled={!street || !number || loading}
+                   disabled={!street || !number || loading || !isOpen}
                    onClick={() => setStep('checkout')}
                  >
-                   {loading ? 'Processando...' : 'Finalizar Pedido'}
+                   {!isOpen ? 'Loja Fechada' : (loading ? 'Processando...' : 'Finalizar Pedido')}
                  </button>
                </div>
              )}
