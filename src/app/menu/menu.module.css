@@ -218,22 +218,41 @@
 }
 
 .addBtn {
-  background: #f8f9fa;
-  color: #1a1a1a;
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
+  background: var(--primary);
+  color: white;
+  padding: 0.5rem;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #eee;
+  gap: 0.4rem;
+  border: none;
   cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  font-weight: 700;
+  font-size: 0.8rem;
+  box-shadow: 0 4px 10px rgba(212, 78, 109, 0.15);
 }
 
-.addBtn:hover {
-  background: var(--primary);
-  color: white;
-  border-color: var(--primary);
+.addBtn:active {
+  transform: scale(0.9);
+}
+
+.addBtn span {
+  display: inline;
+}
+
+@media (max-width: 768px) {
+  .addBtn {
+    padding: 0.4rem;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+  }
+  
+  .addBtn span {
+    display: none; /* Hide text on mobile for cleaner look */
+  }
 }
 
 /* --- CART DRAWER PREMIUM & COMPACT --- */

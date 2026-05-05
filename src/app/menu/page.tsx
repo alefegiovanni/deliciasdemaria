@@ -431,8 +431,8 @@ export default function MenuPage() {
                     onClick={() => addToCart(product)}
                     className={styles.addBtn}
                   >
-                    <Plus size={20} />
-                    Adicionar
+                    <Plus size={18} />
+                    <span>Adicionar</span>
                   </button>
                 </div>
               </div>
