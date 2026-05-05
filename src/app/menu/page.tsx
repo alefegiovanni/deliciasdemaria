@@ -109,6 +109,18 @@ export default function MenuPage() {
     };
   }, []);
 
+  // Body scroll lock
+  useEffect(() => {
+    if (isCartOpen || step !== 'menu') {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isCartOpen, step]);
+
   const saveAddress = () => {
     localStorage.setItem('delicias_address', JSON.stringify({
       name: customerName,
