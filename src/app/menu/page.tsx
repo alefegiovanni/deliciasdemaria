@@ -535,7 +535,7 @@ export default function MenuPage() {
                     <button type="submit" className={styles.submitBtn} disabled={loading}>
                       {loading ? 'Enviando...' : 'Confirmar e Enviar'}
                     </button>
-                    <button type="button" onClick={() => setStep('menu')} className={styles.backBtn}>Voltar</button>
+                    <button type="button" onClick={() => setStep('menu')} className={styles.modalBackBtn}>Voltar</button>
                   </div>
                 </form>
               </div>

@@ -203,10 +203,10 @@ export default function KitchenDashboard() {
     if (!error) fetchDrivers();
   };
 
-  const copyDriverLink = (driverId: string) => {
-    const link = `${window.location.origin}/driver?token=${driverId}`;
+  const copyTeamLink = () => {
+    const link = `${window.location.origin}/driver`;
     navigator.clipboard.writeText(link);
-    alert('Link exclusivo copiado! Envie pelo WhatsApp para este motoboy acessar o painel dele.');
+    alert('Link da equipe copiado! Envie este link para todos os motoboys. Eles poderão selecionar o nome e digitar o PIN.');
   };
 
   const deleteDriver = async (id: string) => {
@@ -1058,8 +1058,14 @@ export default function KitchenDashboard() {
 
         {view === 'drivers' && (
           <>
-            <div className={styles.driversContainer}>
+             <div className={styles.driversContainer}>
                <div className={styles.adminActionHeader}>
+                <div className={styles.teamLinkGroup}>
+                  <button className={styles.btnCopyTeamLink} onClick={copyTeamLink}>
+                    <Link size={18} /> Copiar Link da Equipe
+                  </button>
+                  <p className={styles.linkInfo}>Este link é único para toda a equipe.</p>
+                </div>
                 <button className={styles.btnAddItemMain} onClick={() => setIsDriverModalOpen(true)}>
                   <Plus size={20} /> Novo Motoboy
                 </button>
@@ -1082,12 +1088,6 @@ export default function KitchenDashboard() {
                     </div>
                     
                     <div className={styles.driverActions}>
-                      <button 
-                        onClick={() => copyDriverLink(driver.id)} 
-                        className={styles.btnCopyLink}
-                      >
-                        <Link size={18} /> Copiar Link de Acesso
-                      </button>
                       <button 
                         onClick={() => {
                           setEditingDriver(driver);

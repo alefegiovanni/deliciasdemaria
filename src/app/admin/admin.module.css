@@ -1568,3 +1568,50 @@
   height: 100%;
   object-fit: cover;
 }
+
+/* Team Link Styles */
+.teamLinkGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-right: auto;
+}
+
+.btnCopyTeamLink {
+  background: var(--secondary);
+  color: var(--primary);
+  border: 1px solid rgba(212, 78, 109, 0.2);
+  padding: 0.6rem 1.25rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.btnCopyTeamLink:hover {
+  background: var(--primary);
+  color: white;
+}
+
+.linkInfo {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .adminActionHeader {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 1rem;
+  }
+  
+  .teamLinkGroup {
+    margin-right: 0;
+  }
+}
