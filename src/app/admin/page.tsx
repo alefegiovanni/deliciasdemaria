@@ -44,7 +44,7 @@ export default function KitchenDashboard() {
   const [search, setSearch] = useState('');
   const [showNewOrderAlert, setShowNewOrderAlert] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'received' | 'preparing' | 'ready' | 'out_for_delivery' | 'delivered' | 'cancelled'>('received');
+  const [statusFilter, setStatusFilter] = useState<'active' | 'all' | 'received' | 'preparing' | 'ready' | 'out_for_delivery' | 'delivered' | 'cancelled'>('active');
 
   const router = useRouter();
 
@@ -422,7 +422,7 @@ export default function KitchenDashboard() {
           <button className={styles.navItem} onClick={() => window.location.href='/admin/tracking'}>
             <MapIcon size={20} /> Rastreamento
           </button>
-          <button className={styles.logoutBtn} onClick={() => { localStorage.clear(); router.push('/login'); }}>
+          <button className={styles.logoutBtn} onClick={() => { localStorage.clear(); router.push('/'); }}>
             <LogOut size={20} /> Sair
           </button>
         </nav>
@@ -510,11 +510,11 @@ export default function KitchenDashboard() {
             )}
             <section className={styles.statsGrid}>
               <div 
-                className={`${styles.statCard} ${statusFilter === 'received' ? styles.statCardActive : ''}`}
-                onClick={() => setStatusFilter('received')}
+                className={`${styles.statCard} ${statusFilter === 'active' ? styles.statCardActive : ''}`}
+                onClick={() => setStatusFilter('active')}
               >
-                <p>Pendentes</p>
-                <h3>{orders.filter(o => o.status === 'received').length}</h3>
+                <p>Ativos (Cozinha)</p>
+                <h3>{orders.filter(o => ['received', 'preparing', 'ready'].includes(o.status)).length}</h3>
               </div>
               <div 
                 className={`${styles.statCard} ${statusFilter === 'preparing' ? styles.statCardActive : ''}`}
@@ -545,7 +545,7 @@ export default function KitchenDashboard() {
                 <Search size={20} />
                 <input 
                   type="text" 
-                  placeholder="Buscar pedido por cliente ou ID..." 
+                  placeholder="Buscar pedido por cliente..." 
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -554,7 +554,6 @@ export default function KitchenDashboard() {
               <table className={styles.table}>
                 <thead>
                   <tr>
-                    <th>ID</th>
                     <th>Cliente</th>
                     <th>Itens</th>
                     <th>Status</th>
@@ -565,13 +564,12 @@ export default function KitchenDashboard() {
                   {orders
                     .filter(o => {
                       const matchesSearch = o.customer_name?.toLowerCase().includes(search.toLowerCase()) || o.id.includes(search);
-                      const matchesStatus = statusFilter === 'all' || o.status === statusFilter;
+                      const matchesStatus = statusFilter === 'all' || o.status === statusFilter || (statusFilter === 'active' && ['received', 'preparing', 'ready'].includes(o.status));
                       return matchesSearch && matchesStatus;
                     })
                     .map(order => (
 
                     <tr key={order.id}>
-                      <td>#{order.id.slice(0, 5)}</td>
                       <td>
                         <div className={styles.customerCell}>
                           <strong>{order.customer_name}</strong>

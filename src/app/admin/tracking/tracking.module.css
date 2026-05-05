@@ -188,89 +188,140 @@
   min-height: 400px;
 }
 
-.mapPlaceholder {
+.realMap {
+  width: 100%;
   height: 100%;
+  z-index: 1;
+}
+
+.mapLoader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  z-index: 10;
+  gap: 1rem;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Custom Marker Styles */
+.motoboyMarker {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-direction: column;
-  color: #9ca3af;
-  text-align: center;
-  padding: 2rem;
+  position: relative;
 }
 
-.mapGrid {
+.markerIcon {
+  font-size: 24px;
+  z-index: 2;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+
+.markerPulse {
   position: absolute;
-  inset: 20px;
-  background-image: radial-gradient(#d1d5db 1px, transparent 1px);
-  background-size: 40px 40px;
-  border: 2px solid #d1d5db;
-  border-radius: 20px;
-  background-color: white;
-  box-shadow: inset 0 0 40px rgba(0,0,0,0.02);
+  width: 40px;
+  height: 40px;
+  background: rgba(212, 78, 109, 0.4);
+  border-radius: 50%;
+  z-index: 1;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.5); opacity: 0.8; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+.btnSimulate {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.btnSimulate:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+}
+
+.mapFullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  height: 100vh !important;
+  width: 100vw !important;
+}
+
+.btnExpand {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10000;
+  background: white;
+  padding: 0.75rem 1.25rem;
+  border-radius: 50px;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-main);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnExpand:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.2);
 }
 
 @media (max-width: 768px) {
-  .mapGrid {
-    inset: 10px;
+  .btnExpand {
+    top: auto;
+    bottom: 2rem;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: max-content;
   }
-  
-  .label {
-    padding: 0.15rem 0.4rem !important;
-    font-size: 0.65rem !important;
+  .btnExpand:hover {
+    transform: translateX(-50%) translateY(-2px);
   }
-
-  .restaurantePoint { top: 15% !important; left: 15% !important; }
-  .motoboyPoint { top: 40% !important; left: 35% !important; }
-  .destinatarioPoint { bottom: 15% !important; right: 15% !important; }
 }
 
-.restaurantePoint, .motoboyPoint, .destinatarioPoint {
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-  z-index: 10;
+.fullscreenMode {
+  overflow: hidden;
 }
 
-.restaurantePoint {
-  top: 20%;
-  left: 20%;
-  background: #ff7675;
-}
-
-.motoboyPoint {
-  top: 45%;
-  left: 40%;
-  background: #0984e3;
-  animation: move 5s infinite alternate ease-in-out;
-}
-
-.destinatarioPoint {
-  bottom: 20%;
-  right: 20%;
-  background: #2d3436;
-}
-
-@keyframes move {
-  from { transform: translate(0, 0); }
-  to { transform: translate(30px, -15px); }
-}
-
-.label {
-  position: absolute;
-  top: -24px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: white;
-  padding: 0.2rem 0.6rem;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  white-space: nowrap;
-  color: var(--text-main);
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  border: 1px solid #eee;
-  z-index: 11;
+.emptyMsg {
+  color: var(--text-muted);
+  text-align: center;
+  padding: 2rem 0;
+  font-style: italic;
 }

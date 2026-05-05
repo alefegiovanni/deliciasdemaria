@@ -702,6 +702,18 @@ export default function Home() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <footer className={styles.footer}>
+        <div className={styles.footerContent}>
+          <p>© 2026 Delícias de Maria - Todos os direitos reservados</p>
+          <button 
+            onClick={() => window.location.href = '/login'} 
+            className={styles.adminAccessBtn}
+          >
+            Área Restrita
+          </button>
+        </div>
+      </footer>
     </main>
   );
 }

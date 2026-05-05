@@ -21,65 +21,28 @@ export default function DriverDashboard() {
 
   useEffect(() => {
     const initSession = async () => {
+      fetchDrivers();
+
+      // Se houver um token (link único), fazemos o login automático por ele
       const params = new URLSearchParams(window.location.search);
       const token = params.get('token');
-      const savedDriver = sessionStorage.getItem('delicias_driver');
-      
-      let role = sessionStorage.getItem('user_role');
 
-      // 1. Handle Token (Unique Link) Login
       if (token) {
-        // If already logged in as someone else, check if it's a different driver
-        if (savedDriver) {
-          const current = JSON.parse(savedDriver);
-          if (current.id === token) {
-            // Already logged in as this person, just clean URL
-            window.history.replaceState({}, document.title, '/driver');
-            setCurrentDriver(current);
-            fetchReadyOrders();
-            fetchDrivers();
-            return;
-          }
-        }
-
-        // New token or different driver: Fetch and set
         const { data } = await supabase.from('drivers').select('*').eq('id', token).single();
         if (data) {
           if (!data.active) {
             alert('Sua conta está bloqueada.');
-            router.push('/login');
             return;
           }
           setCurrentDriver(data);
-          sessionStorage.setItem('user_role', 'driver');
           sessionStorage.setItem('delicias_driver', JSON.stringify(data));
-          // Clean the token from URL so a refresh doesn't trigger this again
           window.history.replaceState({}, document.title, '/driver');
         }
       } 
-      // 2. Handle Existing Session (No token in URL)
-      else if (savedDriver) {
-        const driverObj = JSON.parse(savedDriver);
-        // Verify if still active on the server
-        const { data: verify } = await supabase.from('drivers').select('active').eq('id', driverObj.id).single();
-        
-        if (verify && verify.active) {
-          setCurrentDriver(driverObj);
-        } else {
-          // Session expired or blocked
-          sessionStorage.clear();
-          router.push('/login');
-          return;
-        }
-      }
-
-      if (sessionStorage.getItem('user_role') !== 'driver') {
-        router.push('/login');
-        return;
-      }
-
+      // Se não houver token, não carregamos o driver do sessionStorage automaticamente
+      // para forçar a seleção do nome no Portal Geral da Equipe toda vez que o link for aberto.
+      
       fetchReadyOrders();
-      fetchDrivers();
     };
 
     initSession();
@@ -114,14 +77,30 @@ export default function DriverDashboard() {
     };
   }, [watchId, currentDriver]);
 
-   const fetchDrivers = async () => {
+  const fetchDrivers = async () => {
     const { data } = await supabase.from('drivers').select('*').eq('active', true).order('name');
     if (data) setAllDrivers(data);
   };
 
+  const [pinInput, setPinInput] = useState('');
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [tempDriver, setTempDriver] = useState<any>(null);
+
   const selectDriver = (driver: any) => {
-    setCurrentDriver(driver);
-    sessionStorage.setItem('delicias_driver', JSON.stringify(driver));
+    setTempDriver(driver);
+    setPinInput('');
+    setShowPinModal(true);
+  };
+
+  const verifyPin = () => {
+    if (tempDriver && (pinInput === tempDriver.pin || !tempDriver.pin)) {
+      setCurrentDriver(tempDriver);
+      sessionStorage.setItem('delicias_driver', JSON.stringify(tempDriver));
+      setShowPinModal(false);
+    } else {
+      alert('PIN Incorreto! Verifique com a administração.');
+      setPinInput('');
+    }
   };
 
   const fetchReadyOrders = async () => {
@@ -135,11 +114,11 @@ export default function DriverDashboard() {
       return;
     }
 
-    // 2. Fetch available orders (ready + no owner)
+    // 2. Fetch available orders (ready or out_for_delivery + no owner)
     const { data: available } = await supabase
       .from('orders')
       .select('*')
-      .eq('status', 'ready')
+      .or('status.eq.ready,status.eq.out_for_delivery')
       .is('driver_id', null)
       .order('created_at', { ascending: false });
 
@@ -413,6 +392,37 @@ export default function DriverDashboard() {
               <p>O status foi atualizado e a localização final registrada com sucesso.</p>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showPinModal && (
+          <div className={styles.modalOverlay}>
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className={styles.pinCard}
+            >
+              <h3>Acesso de Motoboy</h3>
+              <p>Olá <strong>{tempDriver?.name}</strong>, digite seu PIN de 4 dígitos:</p>
+              
+              <input 
+                type="password" 
+                maxLength={4}
+                inputMode="numeric"
+                value={pinInput}
+                onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
+                placeholder="****"
+                className={styles.pinInput}
+                autoFocus
+              />
+
+              <div className={styles.pinActions}>
+                <button onClick={() => setShowPinModal(false)} className={styles.btnCancel}>Cancelar</button>
+                <button onClick={verifyPin} className={styles.btnConfirm}>Acessar</button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </main>
