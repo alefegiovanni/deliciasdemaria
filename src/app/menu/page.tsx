@@ -718,7 +718,7 @@ export default function MenuPage() {
                         borderRadius: '16px',
                         border: '1px solid #eee',
                         display: 'flex',
-                        justify-content: 'space-between',
+                        justifyContent: 'space-between',
                         alignItems: 'center'
                       }}
                     >
