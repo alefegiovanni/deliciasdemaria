@@ -516,12 +516,13 @@
   position: fixed;
   inset: 0;
   z-index: 3000;
-  background: rgba(0,0,0,0.4);
-  backdrop-filter: blur(8px);
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 1.5rem;
+  overflow-y: auto;
 }
 
 .modal {
@@ -755,15 +756,15 @@
 
 @media (max-width: 768px) {
   .modal {
-    padding: 1.5rem;
-    border-radius: 20px 20px 0 0;
-    margin-top: auto;
-    max-height: 90vh;
+    padding: 2rem 1.5rem;
+    border-radius: 28px;
+    max-height: 85vh;
     overflow-y: auto;
+    margin: auto;
   }
   .modalOverlay {
-    padding: 0;
-    align-items: flex-end;
+    padding: 1rem;
+    align-items: center;
   }
 }
 

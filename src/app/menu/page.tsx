@@ -24,31 +24,6 @@ export default function MenuPage() {
   const [storeAddress, setStoreAddress] = useState('');
   const [calculatingFee, setCalculatingFee] = useState(false);
   const [distance, setDistance] = useState<number | null>(null);
-  
-  const searchOrders = async () => {
-    if (!recoveryPhone) return;
-    setIsSearching(true);
-    try {
-      // Clean phone number for better search
-      const cleanPhone = recoveryPhone.replace(/\D/g, '');
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .or(`customer_phone.eq.${recoveryPhone},customer_phone.ilike.%${cleanPhone}%`)
-        .neq('status', 'cancelled')
-        .order('created_at', { ascending: false })
-        .limit(3);
-      
-      if (error) throw error;
-      setFoundOrders(data || []);
-    } catch (err) {
-      console.error(err);
-      alert('Erro ao buscar pedidos.');
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
   const [showToast, setShowToast] = useState(false);
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
 
@@ -318,7 +293,7 @@ export default function MenuPage() {
         address: `${street}, ${number}${complement ? ` (${complement})` : ''} - ${neighborhood}, ${city} (CEP: ${cep})`,
         payment_method: payment,
         items: cart.map(item => ({ id: item.product.id, name: item.product.name, qty: item.quantity })),
-        notes: obs, // Agora a observação será salva corretamente!
+        notes: obs,
         total,
         status: 'received',
         estimated_time: estimatedTime
@@ -337,17 +312,37 @@ export default function MenuPage() {
     }
   };
 
+  const searchOrders = async () => {
+    if (!recoveryPhone) return;
+    setIsSearching(true);
+    try {
+      const cleanPhone = recoveryPhone.replace(/\D/g, '');
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .or(`customer_phone.eq.${recoveryPhone},customer_phone.ilike.%${cleanPhone}%`)
+        .neq('status', 'cancelled')
+        .order('created_at', { ascending: false })
+        .limit(3);
+      
+      if (error) throw error;
+      setFoundOrders(data || []);
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao buscar pedidos.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   return (
     <main className={styles.main}>
-      {/* Header com botão Voltar */}
       <header className={styles.header}>
         <div className={styles.headerContainer}>
           <button onClick={() => router.push('/')} className={styles.backBtn}>
             <ArrowLeft size={24} />
           </button>
           <h1 className={styles.logo}>Cardápio</h1>
-            )}
-          </button>
 
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button 
@@ -373,7 +368,6 @@ export default function MenuPage() {
         </div>
       </header>
 
-      {/* Store Closed Banner - Elegant Redesign */}
       <AnimatePresence>
         {!isOpen && (
           <motion.div 
@@ -395,7 +389,6 @@ export default function MenuPage() {
         )}
       </AnimatePresence>
 
-      {/* Recovery Badge */}
       <AnimatePresence>
         {activeOrderId && step === 'menu' && (
           <motion.div 
@@ -403,7 +396,7 @@ export default function MenuPage() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
             className={styles.recoveryBadge}
-            onClick={() => window.location.href = `/order/${activeOrderId}`}
+            onClick={() => router.push(`/order/${activeOrderId}`)}
           >
             <div className={styles.recoveryInfo}>
               <div className={styles.pulseContainerSmall}>
@@ -419,7 +412,6 @@ export default function MenuPage() {
         )}
       </AnimatePresence>
 
-      {/* Toast Notification */}
       <AnimatePresence>
         {showToast && (
           <motion.div 
@@ -434,7 +426,6 @@ export default function MenuPage() {
         )}
       </AnimatePresence>
 
-      {/* Categorias */}
       <nav className={styles.categoryNav}>
         <div className={styles.catContainer}>
           {['Pratos', 'Bebidas', 'Sobremesas'].map(cat => (
@@ -450,7 +441,6 @@ export default function MenuPage() {
         </div>
       </nav>
 
-      {/* Listagem de Comidas */}
       <section className={styles.menuSection}>
         <div className={styles.grid}>
           {productsList.filter(p => p.category === selectedCategory).map((product, idx) => (
@@ -494,126 +484,125 @@ export default function MenuPage() {
         </div>
       </section>
 
-      {/* Cart Drawer & Checkout (Simplified copy from page.tsx) */}
       <AnimatePresence>
         {isCartOpen && (
            <div className={styles.overlayWrapper}>
-           <motion.div
-             initial={{ opacity: 0 }}
-             animate={{ opacity: 1 }}
-             exit={{ opacity: 0 }}
-             onClick={() => setIsCartOpen(false)}
-             className={styles.overlay}
-           />
-           <motion.div
-             initial={{ x: '100%' }}
-             animate={{ x: 0 }}
-             exit={{ x: '100%' }}
-             className={styles.drawer}
-           >
-             <div className={styles.drawerHeader}>
-               <h2>Seu Carrinho</h2>
-               <button onClick={() => setIsCartOpen(false)}><X size={24} /></button>
-             </div>
-
-             <div className={styles.drawerBody}>
-               {cart.length === 0 ? (
-                 <div className={styles.emptyCart}>
-                   <ShoppingBag size={48} />
-                   <p>Seu carrinho está vazio.</p>
-                 </div>
-               ) : (
-                 cart.map(item => (
-                   <div key={item.product.id} className={styles.cartItem}>
-                     <div className={styles.cartItemImg}>
-                       <Image src={item.product.image} alt={item.product.name} fill />
-                     </div>
-                     <div className={styles.cartItemInfo}>
-                       <h4>{item.product.name}</h4>
-                       <p className={styles.itemPrice}>R$ {item.product.price.toFixed(2)}</p>
-                       <div className={styles.qtyControls}>
-                         <button onClick={() => updateQuantity(item.product.id, -1)}><Minus size={16} /></button>
-                         <span>{item.quantity}</span>
-                         <button onClick={() => updateQuantity(item.product.id, 1)}><Plus size={16} /></button>
-                       </div>
-                     </div>
-                     <button onClick={() => removeFromCart(item.product.id)} className={styles.removeBtn}><X size={20} /></button>
-                   </div>
-                 ))
-               )}
-             </div>
-
-             {cart.length > 0 && (
-               <div className={styles.drawerFooter}>
-                 <div className={styles.addressSection}>
-                   <div className={styles.addressHeader}>
-                     <MapPin size={18} />
-                     <span>Onde entregamos?</span>
-                   </div>
-                   
-                   <div className={styles.cepRow}>
-                     <input 
-                       type="text" 
-                       placeholder="Seu CEP" 
-                       value={cep}
-                       onChange={(e) => setCep(e.target.value)}
-                       onBlur={handleCEPBlur}
-                       className={styles.cepInput}
-                     />
-                     <input 
-                       type="text" 
-                       placeholder="Nº" 
-                       value={number}
-                       onChange={(e) => setNumber(e.target.value)}
-                       onBlur={handleNumberBlur}
-                       className={styles.numberInput}
-                     />
-                   </div>
-
-                   {street ? (
-                     <div className={styles.addressDisplay}>
-                       <p>{street}, {number || 'S/N'}</p>
-                       <p>{neighborhood} - {city}</p>
-                     </div>
-                   ) : (
-                     <p className={styles.addressDisplay}>Informe o CEP para calcular a entrega</p>
-                   )}
-                 </div>
-
-                 <div className={styles.totalRow}>
-                   <span>Subtotal</span>
-                   <span>R$ {cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0).toFixed(2)}</span>
-                 </div>
-                 <div className={styles.totalRow}>
-                   <span>Taxa de Entrega</span>
-                   <span>{calculatingFee ? '...' : `R$ ${selectedFee.toFixed(2)}`}</span>
-                 </div>
-                 <div className={styles.finalTotal}>
-                   <span>Total</span>
-                   <span>R$ {total.toFixed(2)}</span>
-                 </div>
-
-                 <button 
-                   className={styles.checkoutBtn}
-                   disabled={!street || !number || loading || !isOpen}
-                   onClick={() => setStep('checkout')}
-                 >
-                   {!isOpen ? 'Loja Fechada' : (loading ? 'Processando...' : 'Finalizar Pedido')}
-                 </button>
+             <motion.div
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               exit={{ opacity: 0 }}
+               onClick={() => setIsCartOpen(false)}
+               className={styles.overlay}
+             />
+             <motion.div
+               initial={{ x: '100%' }}
+               animate={{ x: 0 }}
+               exit={{ x: '100%' }}
+               className={styles.drawer}
+             >
+               <div className={styles.drawerHeader}>
+                 <h2>Seu Carrinho</h2>
+                 <button onClick={() => setIsCartOpen(false)}><X size={24} /></button>
                </div>
-             )}
-           </motion.div>
-         </div>
+
+               <div className={styles.drawerBody}>
+                 {cart.length === 0 ? (
+                   <div className={styles.emptyCart}>
+                     <ShoppingBag size={48} />
+                     <p>Seu carrinho está vazio.</p>
+                   </div>
+                 ) : (
+                   cart.map(item => (
+                     <div key={item.product.id} className={styles.cartItem}>
+                       <div className={styles.cartItemImg}>
+                         <Image src={item.product.image} alt={item.product.name} fill />
+                       </div>
+                       <div className={styles.cartItemInfo}>
+                         <h4>{item.product.name}</h4>
+                         <p className={styles.itemPrice}>R$ {item.product.price.toFixed(2)}</p>
+                         <div className={styles.qtyControls}>
+                           <button onClick={() => updateQuantity(item.product.id, -1)}><Minus size={16} /></button>
+                           <span>{item.quantity}</span>
+                           <button onClick={() => updateQuantity(item.product.id, 1)}><Plus size={16} /></button>
+                         </div>
+                       </div>
+                       <button onClick={() => removeFromCart(item.product.id)} className={styles.removeBtn}><X size={20} /></button>
+                     </div>
+                   ))
+                 )}
+               </div>
+
+               {cart.length > 0 && (
+                 <div className={styles.drawerFooter}>
+                   <div className={styles.addressSection}>
+                     <div className={styles.addressHeader}>
+                       <MapPin size={18} />
+                       <span>Onde entregamos?</span>
+                     </div>
+                     
+                     <div className={styles.cepRow}>
+                       <input 
+                         type="text" 
+                         placeholder="Seu CEP" 
+                         value={cep}
+                         onChange={(e) => setCep(e.target.value)}
+                         onBlur={handleCEPBlur}
+                         className={styles.cepInput}
+                       />
+                       <input 
+                         type="text" 
+                         placeholder="Nº" 
+                         value={number}
+                         onChange={(e) => setNumber(e.target.value)}
+                         onBlur={handleNumberBlur}
+                         className={styles.numberInput}
+                       />
+                     </div>
+
+                     {street ? (
+                       <div className={styles.addressDisplay}>
+                         <p>{street}, {number || 'S/N'}</p>
+                         <p>{neighborhood} - {city}</p>
+                       </div>
+                     ) : (
+                       <p className={styles.addressDisplay}>Informe o CEP para calcular a entrega</p>
+                     )}
+                   </div>
+
+                   <div className={styles.totalRow}>
+                     <span>Subtotal</span>
+                     <span>R$ {cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0).toFixed(2)}</span>
+                   </div>
+                   <div className={styles.totalRow}>
+                     <span>Taxa de Entrega</span>
+                     <span>{calculatingFee ? '...' : `R$ ${selectedFee.toFixed(2)}`}</span>
+                   </div>
+                   <div className={styles.finalTotal}>
+                     <span>Total</span>
+                     <span>R$ {total.toFixed(2)}</span>
+                   </div>
+
+                   <button 
+                     className={styles.checkoutBtn}
+                     disabled={!street || !number || loading || !isOpen}
+                     onClick={() => setStep('checkout')}
+                   >
+                     {!isOpen ? 'Loja Fechada' : (loading ? 'Processando...' : 'Finalizar Pedido')}
+                   </button>
+                 </div>
+               )}
+             </motion.div>
+           </div>
         )}
       </AnimatePresence>
 
-      {/* Checkout Modal (Simplified copy) */}
       <AnimatePresence>
         {step === 'checkout' && (
           <div className={styles.modalOverlay}>
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
               className={styles.modal}
             >
               <div className={styles.modalContent}>
@@ -656,29 +645,30 @@ export default function MenuPage() {
         )}
       </AnimatePresence>
 
-      {/* Success View */}
-      {step === 'success' && (
-        <div className={styles.modalOverlay}>
-          <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className={styles.successCard}
-          >
-            <div className={styles.pulseContainer}>
-              <div className={styles.pulseRing} />
-              <CheckCircle2 size={64} className={styles.successIcon} />
-            </div>
-            <h2>Pedido Confirmado!</h2>
-            <p>Seu pedido <strong>#{orderId.slice(-4).toUpperCase()}</strong> já está sendo preparado pela Maria.</p>
-            <div className={styles.successActions}>
-              <button onClick={() => router.push(`/order/${orderId}`)} className={styles.submitBtn}>
-                Acompanhar Entrega
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-      {/* Recovery Modal */}
+      <AnimatePresence>
+        {step === 'success' && (
+          <div className={styles.modalOverlay}>
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className={styles.successCard}
+            >
+              <div className={styles.pulseContainer}>
+                <div className={styles.pulseRing} />
+                <CheckCircle2 size={64} className={styles.successIcon} />
+              </div>
+              <h2>Pedido Confirmado!</h2>
+              <p>Seu pedido <strong>#{orderId.slice(-4).toUpperCase()}</strong> já está sendo preparado pela Maria.</p>
+              <div className={styles.successActions}>
+                <button onClick={() => router.push(`/order/${orderId}`)} className={styles.submitBtn}>
+                  Acompanhar Entrega
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {isRecoveryOpen && (
           <div className={styles.modalOverlay}>
@@ -729,7 +719,7 @@ export default function MenuPage() {
                         border: '1px solid #eee',
                         display: 'flex',
                         justify-content: 'space-between',
-                        align-items: 'center'
+                        alignItems: 'center'
                       }}
                     >
                       <div>
