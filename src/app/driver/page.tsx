@@ -47,10 +47,14 @@ export default function DriverDashboard() {
 
     initSession();
     
+    // Strategy 1: Realtime (Instant if connection is stable)
     const channelOrders = supabase
-      .channel('driver-orders')
+      .channel('driver-orders-v2')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => fetchReadyOrders())
       .subscribe();
+
+    // Strategy 2: Fast Polling (1.5s) - Essential for Mobile reliability
+    const pollInterval = setInterval(() => fetchReadyOrders(), 1500);
 
     // Listen for driver status changes (Blocking)
     let channelStatus: any;
@@ -72,6 +76,7 @@ export default function DriverDashboard() {
 
     return () => {
       supabase.removeChannel(channelOrders);
+      clearInterval(pollInterval);
       if (channelStatus) supabase.removeChannel(channelStatus);
       if (watchId) navigator.geolocation.clearWatch(watchId);
     };
