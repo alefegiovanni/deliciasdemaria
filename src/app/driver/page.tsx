@@ -192,33 +192,46 @@ export default function DriverDashboard() {
   }, [activeOrder, isTracking]);
 
   const acceptOrder = async (orderId: string) => {
-    if (!currentDriver) return;
+    if (!currentDriver || !currentDriver.id) return;
     
     try {
-      const { data, error } = await supabase
+      setIsFetching(true); // Show loading state
+
+      // We only need to update the status to 'out_for_delivery' 
+      // (although Maria already set it, this confirms the driver has physically started the delivery)
+      const { error } = await supabase
         .from('orders')
         .update({ 
-          status: 'out_for_delivery',
-          driver_id: currentDriver.id 
+          status: 'out_for_delivery' 
         })
         .eq('id', orderId)
-        .eq('driver_id', currentDriver.id)
-        .select();
+        .eq('driver_id', currentDriver.id);
 
       if (error) throw error;
 
-      if (!data || data.length === 0) {
-        alert('Este pedido não está mais disponível ou não foi atribuído a você.');
-      } else {
-        const accepted = data[0];
+      // Find the order in our local list to set it as active
+      const accepted = orders.find(o => o.id === orderId);
+      if (accepted) {
         setActiveOrder(accepted);
         setIsTracking(true);
-        // GPS tracking will start via the useEffect watching [activeOrder, isTracking]
+      } else {
+        // If not in list, fetch it specifically
+        const { data: freshOrder } = await supabase.from('orders').select('*').eq('id', orderId).single();
+        if (freshOrder) {
+          setActiveOrder(freshOrder);
+          setIsTracking(true);
+        }
       }
     } catch (err: any) {
       console.error('[acceptOrder] Error:', err);
-      alert('Erro ao aceitar pedido: ' + (err.message || 'Verifique sua conexão.'));
+      // "Load failed" is usually a network glitch. Suggest retry.
+      if (err.message?.includes('Load failed') || err.name === 'TypeError') {
+        alert('Erro de conexão no celular. Por favor, tente clicar novamente.');
+      } else {
+        alert('Erro ao confirmar: ' + (err.message || 'Verifique sua conexão.'));
+      }
     } finally {
+      setIsFetching(false);
       fetchReadyOrders();
     }
   };
