@@ -54,8 +54,8 @@ export default function MenuPage() {
       setIsRecoveryOpen(true);
       window.history.replaceState({}, '', '/menu');
     }
-
     // Check for active orders
+    let trackingChannel: any;
     const checkActiveOrder = async () => {
       const lastId = localStorage.getItem('last_order_id');
       if (lastId) {
@@ -68,8 +68,9 @@ export default function MenuPage() {
         if (data && data.status !== 'delivered' && data.status !== 'cancelled') {
           setActiveOrderId(data.id);
 
-          const channel = supabase
-            .channel(`public:orders:id=eq.${data.id}`)
+          // Senior: Use a more unique name and clean up any existing channel with same name
+          const channelName = `order-track-${data.id}-${Math.random().toString(36).slice(2, 7)}`;
+          trackingChannel = supabase.channel(channelName)
             .on('postgres_changes', { 
               event: 'UPDATE', 
               schema: 'public', 
@@ -79,21 +80,15 @@ export default function MenuPage() {
               if (payload.new.status === 'delivered' || payload.new.status === 'cancelled') {
                 setActiveOrderId(null);
                 localStorage.removeItem('last_order_id');
-                supabase.removeChannel(channel);
+                if (trackingChannel) supabase.removeChannel(trackingChannel);
               }
             })
             .subscribe();
-          
-          return channel;
         }
       }
-      return null;
     };
     
-    let trackingChannel: any;
-    checkActiveOrder().then(channel => {
-      trackingChannel = channel;
-    });
+    checkActiveOrder();;
 
     // Real-time store status
     const settingsChannel = supabase
@@ -140,6 +135,17 @@ export default function MenuPage() {
     };
   }, []);
 
+  // Proactive fee calculation when CEP and Number are present
+  useEffect(() => {
+    const cleanCEP = cep.replace(/\D/g, '');
+    if (cleanCEP.length === 8 && number.length > 0) {
+      const timer = setTimeout(() => {
+        handleCEPBlur();
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [cep, number]);
+
   // Body scroll lock
   useEffect(() => {
     if (isCartOpen || step !== 'menu') {
@@ -175,14 +181,35 @@ export default function MenuPage() {
     if (data) {
       setEstimatedTime(data.prep_time_minutes);
       setIsOpen(data.is_open ?? true);
-      setDistanceFees(data.distance_fees || []);
+      // Senior: Always sort fees by distance to ensure correct matching logic
+      const sortedFees = (data.distance_fees || []).sort((a: any, b: any) => a.maxKm - b.maxKm);
+      setDistanceFees(sortedFees);
       setStoreAddress(data.store_address || '');
     }
   };
 
   const getCoordinates = async (address: string) => {
     try {
-      const searchAddr = address.includes('Caçapava') ? address : `${address}, Caçapava, SP, Brasil`;
+      // Senior: Clean address from noise like (CEP: ...) which breaks Nominatim
+      const cleanAddr = address.replace(/\(CEP:.*?\)/g, '').replace(/-/g, ',').trim();
+      
+      // Senior: Use CEP + Brasil for maximum precision if it's a CEP
+      let searchAddr = cleanAddr;
+      const isCEP = /^[0-9]{8}$/.test(cleanAddr.replace(/[^0-9]/g, ''));
+      
+      if (isCEP) {
+        searchAddr = `${cleanAddr}, Brasil`;
+      } else if (!cleanAddr.toLowerCase().includes('brasil')) {
+        // Add city context if not present for street searches
+        if (!cleanAddr.toLowerCase().includes('são josé') && !cleanAddr.toLowerCase().includes('caçapava')) {
+          searchAddr = `${cleanAddr}, Caçapava, SP, Brasil`;
+        } else {
+          searchAddr = `${cleanAddr}, Brasil`;
+        }
+      }
+
+      console.log('[Geocoding] Searching for:', searchAddr);
+
       const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchAddr)}&limit=1`, {
         headers: {
           'User-Agent': 'DeliciasDeMaria/1.0'
@@ -191,8 +218,10 @@ export default function MenuPage() {
       const data = await response.json();
 
       if (data && data.length > 0) {
+        console.log('[Geocoding] Found:', data[0].display_name);
         return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
       }
+      console.warn('[Geocoding] No results found for:', searchAddr);
       return null;
     } catch (error) {
       console.error('Geocoding error:', error);
@@ -219,17 +248,33 @@ export default function MenuPage() {
       }
       
       const storeCoords = storeCoordsRef.current;
-      const customerCoords = await getCoordinates(customerAddr);
+      let customerCoords = await getCoordinates(customerAddr);
+
+      // Fallback: Try searching only by CEP if full address failed
+      if (!customerCoords && cep) {
+        customerCoords = await getCoordinates(cep);
+      }
 
       if (storeCoords && customerCoords) {
         const dist = calculateDistance(storeCoords.lat, storeCoords.lon, customerCoords.lat, customerCoords.lon);
+        console.log(`[Fee] Distance calculated: ${dist.toFixed(2)}km`);
         setDistance(dist);
+        
         const feeRule = distanceFees.find(f => dist <= f.maxKm);
-        if (feeRule) setSelectedFee(feeRule.price);
-        else setSelectedFee(distanceFees[distanceFees.length - 1]?.price || 0);
+        if (feeRule) {
+          setSelectedFee(feeRule.price);
+        } else {
+          // If distance exceeds all rules, use the highest one
+          setSelectedFee(distanceFees[distanceFees.length - 1]?.price || 0);
+        }
+      } else {
+        console.warn('[Fee] Could not determine coordinates. Using fallback fee.');
+        // Default to the last (highest) fee rule if geocoding fails
+        setSelectedFee(distanceFees[distanceFees.length - 1]?.price || 0);
       }
     } catch (err) {
       console.error('Fee calculation error:', err);
+      setSelectedFee(distanceFees[distanceFees.length - 1]?.price || 0);
     } finally {
       setCalculatingFee(false);
     }
@@ -239,17 +284,21 @@ export default function MenuPage() {
     const cleanCEP = cep.replace(/\D/g, '');
     if (cleanCEP.length === 8) {
       try {
+        setCalculatingFee(true);
         const res = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`);
         const data = await res.json();
         if (!data.erro) {
           setStreet(data.logradouro);
           setCity(data.localidade);
           setNeighborhood(data.bairro);
-          const fullAddress = `${data.logradouro}, ${number}, ${data.bairro}, ${data.localidade}`;
-          updateDeliveryFee(fullAddress);
+          // Trigger fee calculation with the new data
+          const fullAddress = `${data.logradouro}, ${number || 'S/N'}, ${data.bairro}, ${data.localidade}`;
+          await updateDeliveryFee(fullAddress);
         }
       } catch (err) {
         console.error('Erro ao buscar CEP', err);
+      } finally {
+        setCalculatingFee(false);
       }
     }
   };
@@ -568,7 +617,7 @@ export default function MenuPage() {
                      disabled={!street || !number || loading || !isOpen}
                      onClick={() => setStep('checkout')}
                    >
-                     {!isOpen ? 'Loja Fechada' : (loading ? 'Processando...' : 'Finalizar Pedido')}
+                     {!isOpen ? 'Loja Fechada' : (loading ? 'Processando...' : 'CONTINUAR')}
                    </button>
                  </div>
                )}

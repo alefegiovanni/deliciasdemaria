@@ -6,14 +6,15 @@ import { supabase } from '@/lib/supabase';
 export default function GlobalNotificationSystem() {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const notifiedOrdersRef = useRef<Set<string>>(new Set());
-  const lastOrderTimestampRef = useRef<string>(new Date(Date.now() - 120000).toISOString());
+  const lastOrderTimestampRef = useRef<string>(new Date().toISOString());
   const [isAdmin, setIsAdmin] = useState(false);
 
   // Sync admin status
   useEffect(() => {
     const checkAdmin = () => {
       const role = localStorage.getItem('user_role');
-      setIsAdmin(role === 'admin');
+      const isPathAdmin = window.location.pathname.startsWith('/admin');
+      setIsAdmin(role === 'admin' && isPathAdmin);
     };
     
     checkAdmin();

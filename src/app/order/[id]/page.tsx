@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import { Clock, CheckCircle2, Package, Truck, Utensils, Phone, MapPin, User, ArrowLeft } from 'lucide-react';
+import { Clock, CheckCircle2, Package, Truck, Utensils, Phone, MapPin, User, ArrowLeft, AlertCircle, MessageCircle } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -74,8 +74,14 @@ export default function OrderTracking() {
       .channel(`order-status-${id}`)
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${id}` },
-        (payload) => setOrder(payload.new)
+        { event: '*', schema: 'public', table: 'orders', filter: `id=eq.${id}` },
+        (payload) => {
+          if (payload.eventType === 'DELETE') {
+            setOrder((prev: any) => ({ ...prev, status: 'cancelled' }));
+          } else {
+            setOrder(payload.new);
+          }
+        }
       )
       .subscribe();
 
@@ -133,109 +139,107 @@ export default function OrderTracking() {
             </header>
 
             <section className={styles.statusSection}>
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className={styles.estimatedCard}
-              >
-                <div className={styles.estimatedInfo}>
-                  <Clock className={styles.clockIcon} size={32} />
-                  <div>
-                    <h3>Tempo estimado de preparo</h3>
-                    <p className={styles.timeValue}>{order.estimated_time || 40} min</p>
-                  </div>
-                </div>
-              </motion.div>
-
-              <div className={styles.timeline}>
-                {statuses.map((status, index) => {
-                  const Icon = status.icon;
-                  const currentIndex = (() => {
-                    if (order.status === 'received') return 0;
-                    if (order.status === 'preparing') return 1;
-                    if (order.status === 'ready') return 2;
-                    if (order.status === 'out_for_delivery') {
-                      return order.driver_id ? 4 : 3;
-                    }
-                    if (order.status === 'delivered') return 5;
-                    return -1;
-                  })();
-
-                  const isPast = index < currentIndex;
-                  const isCurrent = index === currentIndex;
-                  const isDelivered = status.id === 'delivered' && (isCurrent || isPast);
-
-                  return (
-                    <motion.div 
-                      layout
-                      key={status.id} 
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className={`${styles.statusItem} ${isPast ? styles.past : ''} ${isCurrent ? styles.current : ''} ${isDelivered ? styles.delivered : ''}`}
+              {order.status === 'cancelled' ? (
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={styles.canceledCard}
+                >
+                  <AlertCircle size={48} color="#e11d48" />
+                  <h2>Puxa! Seu pedido foi cancelado.</h2>
+                  <p>Infelizmente o restaurante não pôde concluir seu pedido neste momento.</p>
+                  <div className={styles.canceledActions}>
+                    <Link href="/menu" className={styles.backToMenuBtn}>
+                      Voltar ao Cardápio
+                    </Link>
+                    <a 
+                      href="https://wa.me/5512991911546" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className={styles.supportCanceledBtn}
                     >
-                      <div className={styles.statusIconWrapper}>
-                        <Icon size={24} />
-                        {index < statuses.length - 1 && <div className={styles.line} />}
+                      <MessageCircle size={20} />
+                      Falar com Restaurante
+                    </a>
+                  </div>
+                </motion.div>
+              ) : (
+                <>
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className={styles.estimatedCard}
+                  >
+                    <div className={styles.estimatedInfo}>
+                      <Clock className={styles.clockIcon} size={32} />
+                      <div>
+                        <h3>Tempo estimado de preparo</h3>
+                        <p className={styles.timeValue}>{order.estimated_time || 40} min</p>
                       </div>
-                      <div className={styles.statusText}>
-                        <p className={styles.statusLabel}>{status.label}</p>
-                        {isCurrent && !isDelivered && (
-                          <motion.p 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className={styles.statusBadge}
-                          >
-                            Em andamento
-                          </motion.p>
-                        )}
-                        {(isPast || isDelivered) && (
-                          <motion.p 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className={styles.statusBadge}
-                          >
-                            Concluído
-                          </motion.p>
-                        )}
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
+                    </div>
+                  </motion.div>
+
+                  <div className={styles.timeline}>
+                    {statuses.map((status, index) => {
+                      const Icon = status.icon;
+                      const currentIndex = (() => {
+                        if (order.status === 'received') return 0;
+                        if (order.status === 'preparing') return 1;
+                        if (order.status === 'ready') return 2;
+                        if (order.status === 'out_for_delivery') {
+                          return order.driver_id ? 4 : 3;
+                        }
+                        if (order.status === 'delivered') return 5;
+                        return -1;
+                      })();
+
+                      const isPast = index < currentIndex;
+                      const isCurrent = index === currentIndex;
+                      const isDelivered = status.id === 'delivered' && (isCurrent || isPast);
+
+                      return (
+                        <motion.div 
+                          layout
+                          key={status.id} 
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          className={`${styles.statusItem} ${isPast ? styles.past : ''} ${isCurrent ? styles.current : ''} ${isDelivered ? styles.delivered : ''}`}
+                        >
+                          <div className={styles.statusIconWrapper}>
+                            <Icon size={24} />
+                            {index < statuses.length - 1 && <div className={styles.line} />}
+                          </div>
+                          <div className={styles.statusText}>
+                            <p className={styles.statusLabel}>{status.label}</p>
+                            {isCurrent && !isDelivered && (
+                              <motion.p 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className={styles.statusBadge}
+                              >
+                                Em andamento
+                              </motion.p>
+                            )}
+                            {(isPast || isDelivered) && (
+                              <motion.p 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className={styles.statusBadge}
+                              >
+                                Concluído
+                              </motion.p>
+                            )}
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </section>
 
-            <section className={styles.detailsSection}>
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className={styles.card}
-              >
-                <h3>Detalhes da Entrega</h3>
-                <div className={styles.detailRow}>
-                  <MapPin size={18} />
-                  <p>{order.address}</p>
-                </div>
-                <div className={styles.detailRow}>
-                  <Phone size={18} />
-                  <p>{order.customer_phone}</p>
-                </div>
-              </motion.div>
-
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className={styles.card}
-              >
-                <h3>Suporte</h3>
-                <p className={styles.supportText}>Algum problema com seu pedido?</p>
-                <button className={styles.contactBtn}>
-                  Falar com o Restaurante
-                </button>
-              </motion.div>
-            </section>
+            {/* Removido seções redundantes de endereço e suporte para um visual mais limpo */}
           </div>
         </motion.main>
       )}

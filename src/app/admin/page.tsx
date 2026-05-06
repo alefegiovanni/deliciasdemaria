@@ -13,6 +13,7 @@ export default function KitchenDashboard() {
   const [drivers, setDrivers] = useState<any[]>([]);
   const [isDriverModalOpen, setIsDriverModalOpen] = useState(false);
   const [editingDriver, setEditingDriver] = useState<any>(null);
+  const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
   const [newDriver, setNewDriver] = useState({ name: '', phone: '', pin: '' });
   const [lastOrderCount, setLastOrderCount] = useState(0);
   const [isOpen, setIsOpen] = useState(true);
@@ -363,23 +364,35 @@ export default function KitchenDashboard() {
   };
 
   const updateStatus = async (id: string, newStatus: string, driverId: string | null = null) => {
+    console.log(`[Admin] Tentando atualizar pedido ${id} para ${newStatus}`);
+    
     // Optimistic update
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, status: newStatus, driver_id: driverId || o.driver_id } : o));
+    setOrders(prev => prev.map(o => o.id === id ? { 
+      ...o, 
+      status: newStatus, 
+      driver_id: newStatus === 'cancelled' ? null : (driverId || o.driver_id) 
+    } : o));
 
     const updates: any = { status: newStatus };
     if (driverId) updates.driver_id = driverId;
+    else if (newStatus === 'cancelled') updates.driver_id = null;
 
-    const { error } = await supabase
-      .from('orders')
-      .update(updates)
-      .eq('id', id);
-    
-    if (error) {
-      console.error('Erro ao atualizar status:', error);
-      alert(`ERRO DE BANCO DE DADOS!\nTentando mudar para: "${newStatus}"\nMotoboy ID: ${driverId || 'Nenhum'}\n\nErro Original: ${error.message}`);
-      fetchOrders(); // Revert to server state
-    } else {
-      fetchOrders(); // Ensure fresh data
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update(updates)
+        .eq('id', id);
+      
+      if (error) {
+        console.error('Erro Supabase:', error);
+        alert(`ERRO NO BANCO: ${error.message}\nVerifique se o status "${newStatus}" é permitido.`);
+        fetchOrders(); // Revert
+      } else {
+        console.log('[Admin] Atualização concluída com sucesso');
+        fetchOrders();
+      }
+    } catch (err: any) {
+      alert(`ERRO FATAL: ${err.message}`);
     }
   };
 
@@ -555,8 +568,8 @@ const categories = Array.from(new Set(productsList.map(p => p.category)));
                 <h3>{orders.filter(o => o.status === 'out_for_delivery' || (o.status === 'ready' && o.driver_id)).length}</h3>
               </div>
               <div 
-                className={styles.statCard}
-                onClick={() => router.push('/admin/tracking')}
+                className={`${styles.statCard} ${statusFilter === 'delivered' ? styles.statCardActive : ''}`}
+                onClick={() => setStatusFilter('delivered')}
               >
                 <p>Histórico</p>
                 <span className={styles.linkText}>Ver Concluídos</span>
@@ -645,7 +658,7 @@ const categories = Array.from(new Set(productsList.map(p => p.category)));
                           {order.status === 'preparing' && (
                             <button onClick={() => updateStatus(order.id, 'ready')} className={styles.btnReady}>Pronto</button>
                           )}
-                          {order.status === 'ready' && (
+                          {order.status === 'ready' && !order.driver_id && (
                             <button onClick={() => {
                               setOrderToDispatch(order.id);
                               setIsDispatchModalOpen(true);
@@ -653,15 +666,26 @@ const categories = Array.from(new Set(productsList.map(p => p.category)));
                           )}
                           {order.status !== 'delivered' && order.status !== 'cancelled' && (
                             <button 
-                              onClick={() => {
-                                if(confirm('Deseja realmente CANCELAR este pedido?')) {
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirmCancelId === order.id) {
                                   updateStatus(order.id, 'cancelled');
+                                  setConfirmCancelId(null);
+                                } else {
+                                  setConfirmCancelId(order.id);
+                                  // Senior UX: Auto-reset confirmation after 3 seconds
+                                  setTimeout(() => setConfirmCancelId(null), 3000);
                                 }
                               }} 
-                              className={styles.btnCancel}
-                              title="Cancelar Pedido"
+                              className={`${styles.btnCancel} ${confirmCancelId === order.id ? styles.confirming : ''}`}
+                              title={confirmCancelId === order.id ? "Clique novamente para confirmar" : "Cancelar Pedido"}
                             >
-                              <UserX size={18} />
+                              {confirmCancelId === order.id ? (
+                                <CheckCircle2 size={18} />
+                              ) : (
+                                <Trash2 size={18} />
+                              )}
                             </button>
                           )}
                           <button 

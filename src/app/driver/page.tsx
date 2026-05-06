@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Truck, MapPin, Phone, CheckCircle2, Navigation, AlertCircle, LogOut, RotateCcw } from 'lucide-react';
+import { Truck, MapPin, Phone, CheckCircle2, Navigation, AlertCircle, LogOut, RotateCcw, Map as MapIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import styles from './driver.module.css';
@@ -99,7 +99,7 @@ export default function DriverDashboard() {
       if (channelStatus) supabase.removeChannel(channelStatus);
       if (watchId) navigator.geolocation.clearWatch(watchId);
     };
-  }, [watchId, currentDriver]);
+  }, [watchId, currentDriver?.id]); // Senior: Only re-run if ID changes, avoiding loop overlap
 
   const fetchDrivers = async () => {
     const { data } = await supabase.from('drivers').select('*').eq('active', true).order('name');
@@ -144,6 +144,7 @@ export default function DriverDashboard() {
       setIsFetching(true);
 
       // 1. Fetch ALL orders assigned to this specific driver that are ready/in route
+      // Senior: Strict double-check on driver.id
       const { data: allAssigned, error: errAvail } = await supabase
         .from('orders')
         .select('*')
@@ -152,15 +153,18 @@ export default function DriverDashboard() {
         .order('created_at', { ascending: false });
 
       if (!errAvail && allAssigned) {
+        // Senior: Filter again on client-side to be 100% safe against shared sessions
+        const myOrders = allAssigned.filter(o => o.driver_id === driver.id);
+        
         // Auto-recovery: If we have an order with 'out_for_delivery' but no activeOrder state, resume it
-        const currentActive = allAssigned.find(o => o.status === 'out_for_delivery');
+        const currentActive = myOrders.find(o => o.status === 'out_for_delivery');
         if (currentActive && !activeOrder) {
           setActiveOrder(currentActive);
           setIsTracking(true);
         }
 
         // The list shows ONLY 'ready' orders (those waiting for pickup)
-        setOrders(allAssigned.filter(o => o.status === 'ready'));
+        setOrders(myOrders.filter(o => o.status === 'ready'));
       }
     } catch (err) {
       console.error('[fetchReadyOrders] Error:', err);
@@ -288,6 +292,10 @@ export default function DriverDashboard() {
     window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank');
   };
 
+  const openInWaze = (address: string) => {
+    window.open(`https://waze.com/ul?q=${encodeURIComponent(address)}&navigate=yes`, '_blank');
+  };
+
   return (
     <main className={styles.main}>
       <header className={styles.header}>
@@ -325,23 +333,19 @@ export default function DriverDashboard() {
                 Trocar
               </button>
             </div>
-            <div style={{ 
-              fontSize: '11px', 
-              color: '#d44e6d', 
-              marginBottom: '1rem', 
-              padding: '8px', 
-              background: '#fff1f2', 
-              borderRadius: '8px',
-              fontWeight: '600'
-            }}>
-              Sincronização: {orders.length} pedidos encontrados | Última atualização: {new Date().toLocaleTimeString()}
-            </div>
             <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>Seus Pedidos para Retirar</h2>
+              <div>
+                <h2 className={styles.sectionTitle}>Pedidos para Retirar</h2>
+                <div className={styles.syncStatus}>
+                  <div className={styles.livePulse}></div>
+                  <span>Sincronizado • {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+              </div>
               <button 
                 onClick={() => fetchReadyOrders()} 
                 className={`${styles.refreshBtn} ${isFetching ? styles.spinning : ''}`}
                 disabled={isFetching}
+                title="Atualizar lista"
               >
                 <RotateCcw size={18} />
               </button>
@@ -403,12 +407,20 @@ export default function DriverDashboard() {
             </div>
 
             <div className={styles.deliveryActions}>
-              <button 
-                onClick={() => openInMaps(activeOrder.address)}
-                className={styles.btnMaps}
-              >
-                <Navigation size={22} /> Navegar com Google Maps
-              </button>
+              <div className={styles.navGroup}>
+                <button 
+                  onClick={() => openInMaps(activeOrder.address)}
+                  className={styles.btnMaps}
+                >
+                  <Navigation size={20} /> Google Maps
+                </button>
+                <button 
+                  onClick={() => openInWaze(activeOrder.address)}
+                  className={styles.btnWaze}
+                >
+                  <MapIcon size={20} /> Waze
+                </button>
+              </div>
 
               <button 
                 onClick={completeDelivery}

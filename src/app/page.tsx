@@ -29,16 +29,7 @@ export default function Home() {
     <main className={styles.main}>
       {/* 1️⃣ Seção Hero (Cinematográfica) */}
       <section className={styles.hero}>
-        <div className={styles.videoBackground}>
-          <video 
-            autoPlay 
-            loop 
-            muted 
-            playsInline 
-            className={styles.bgVideo}
-          >
-            <source src="/bg-video.mp4" type="video/mp4" />
-          </video>
+        <div className={styles.heroBackground}>
           <div className={styles.videoOverlay} />
         </div>
 
