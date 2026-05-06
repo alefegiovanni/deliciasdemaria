@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Truck, MapPin, Phone, CheckCircle2, Navigation, AlertCircle, LogOut } from 'lucide-react';
+import { Truck, MapPin, Phone, CheckCircle2, Navigation, AlertCircle, LogOut, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import styles from './driver.module.css';
@@ -17,6 +17,7 @@ export default function DriverDashboard() {
   const [watchId, setWatchId] = useState<number | null>(null);
   const [completing, setCompleting] = useState(false);
   const [showAddress, setShowAddress] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -109,45 +110,47 @@ export default function DriverDashboard() {
   };
 
   const fetchReadyOrders = async () => {
-    if (!currentDriver) return;
+    setIsFetching(true);
+    const driverId = currentDriver?.id;
 
-    // 1. Double check if driver is still active
-    const { data: check } = await supabase.from('drivers').select('active').eq('id', currentDriver.id).single();
-    if (check && !check.active) {
-      sessionStorage.clear();
-      router.push('/login');
-      return;
-    }
+    try {
+      const { data: available, error: errorAvailable } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('status', 'dispatched')
+        .is('driver_id', null)
+        .order('created_at', { ascending: false });
 
-    // 2. Fetch available orders (dispatched = ready and sent to delivery pool)
-    const { data: available } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('status', 'dispatched')
-      .is('driver_id', null)
-      .order('created_at', { ascending: false });
+      if (errorAvailable) throw errorAvailable;
+      setOrders(available || []);
 
-    // 3. Fetch current driver's active order
-    const { data: myActive } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('status', 'out_for_delivery')
-      .eq('driver_id', currentDriver.id)
-      .maybeSingle();
+      if (driverId) {
+        const { data: myActive, error: errorActive } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('status', 'out_for_delivery')
+          .eq('driver_id', driverId)
+          .maybeSingle();
 
-    if (available) setOrders(available);
-
-    if (myActive) {
-      setActiveOrder(myActive);
-      setIsTracking(true);
-      if (!watchId) startGpsTracking(myActive.id);
-    } else {
-      setActiveOrder(null);
-      setIsTracking(false);
-      if (watchId) {
-        navigator.geolocation.clearWatch(watchId);
-        setWatchId(null);
+        if (errorActive) throw errorActive;
+        
+        if (myActive) {
+          setActiveOrder(myActive);
+          setIsTracking(true);
+          if (!watchId) startGpsTracking(myActive.id);
+        } else {
+          setActiveOrder(null);
+          setIsTracking(false);
+          if (watchId) {
+            navigator.geolocation.clearWatch(watchId);
+            setWatchId(null);
+          }
+        }
       }
+    } catch (err) {
+      console.error('[DriverPage] Error fetching orders:', err);
+    } finally {
+      setIsFetching(false);
     }
   };
 
@@ -284,7 +287,16 @@ export default function DriverDashboard() {
                 Trocar
               </button>
             </div>
-            <h2 className={styles.sectionTitle}>Entregas Disponíveis</h2>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Entregas Disponíveis</h2>
+              <button 
+                onClick={() => fetchReadyOrders()} 
+                className={`${styles.refreshBtn} ${isFetching ? styles.spinning : ''}`}
+                disabled={isFetching}
+              >
+                <RotateCcw size={18} />
+              </button>
+            </div>
             <div className={styles.orderList}>
               {orders.filter(o => !o.driver_id).map(order => (
                 <div key={order.id} className={styles.orderCard}>
