@@ -37,7 +37,7 @@ export default function MenuPage() {
   const [city, setCity] = useState('');
   const [complement, setComplement] = useState('');
   const [phone, setPhone] = useState('');
-  const [payment, setPayment] = useState('Cartão (Entrega)');
+  const [payment, setPayment] = useState('Cartão (Na Entrega)');
   const [obs, setObs] = useState('');
   const [isRecoveryOpen, setIsRecoveryOpen] = useState(false);
   const [recoveryPhone, setRecoveryPhone] = useState('');
@@ -153,6 +153,12 @@ export default function MenuPage() {
     } else {
       document.body.style.overflow = 'unset';
     }
+    
+    // Senior: Auto-close cart when moving to checkout to avoid z-index blocking on mobile
+    if (step === 'checkout' && isCartOpen) {
+      setIsCartOpen(false);
+    }
+
     return () => {
       document.body.style.overflow = 'unset';
     };
@@ -342,15 +348,22 @@ export default function MenuPage() {
 
   const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0) + selectedFee;
 
-  const handleCheckout = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCheckout = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (loading) return;
+
+    // Manual validation to ensure we catch issues before submission
+    if (!customerName.trim() || !phone.trim()) {
+      alert('Por favor, preencha seu nome e telefone.');
+      return;
+    }
+
     setLoading(true);
 
     try {
       const orderData = {
-        customer_name: customerName,
-        customer_phone: phone,
+        customer_name: customerName.trim(),
+        customer_phone: phone.replace(/\D/g, ''), // Senior: Clean phone number for database consistency
         address: `${street}, ${number}${complement ? ` (${complement})` : ''} - ${neighborhood}, ${city} (CEP: ${cep})`,
         payment_method: payment,
         items: cart.map(item => ({ id: item.product.id, name: item.product.name, qty: item.quantity })),
@@ -663,7 +676,12 @@ export default function MenuPage() {
                     <textarea value={obs} onChange={e => setObs(e.target.value)} placeholder="Ex: Sem cebola, campainha estragada..." />
                   </div>
                   <div className={styles.formActions}>
-                    <button type="submit" className={styles.submitBtn} disabled={loading}>
+                    <button 
+                      type="submit" 
+                      id="confirm-order-button"
+                      className={styles.submitBtn} 
+                      disabled={loading}
+                    >
                       {loading ? 'Enviando...' : 'Confirmar e Enviar'}
                     </button>
                     <button type="button" onClick={() => setStep('menu')} className={styles.modalBackBtn}>Voltar</button>
