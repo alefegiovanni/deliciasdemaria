@@ -398,26 +398,6 @@ const categories = Array.from(new Set(productsList.map(p => p.category)));
 
   return (
     <main className={styles.main}>
-      {/* === DEBUG PANEL FOR RENATO === */}
-      <div style={{ position: 'fixed', bottom: '10px', right: '10px', zIndex: 9999, background: '#ffebee', border: '2px solid #f44336', padding: '15px', borderRadius: '8px', fontSize: '14px', color: '#b71c1c', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', maxWidth: '400px' }}>
-        <strong style={{fontSize: '16px'}}>PAINEL DE DIAGNÓSTICO (DEBUG):</strong><br/><br/>
-        <strong>API Status:</strong> {apiDebug}<br/>
-        <strong>Qtd. Pedidos na Memória:</strong> {orders.length}<br/>
-        <strong>Filtro Atual:</strong> {statusFilter}<br/>
-        <strong>Pedidos Passando no Filtro:</strong> {orders.filter(o => {
-          const matchesSearch = o.customer_name?.toLowerCase().includes(search.toLowerCase()) || o.id.includes(search);
-          let matchesStatus = false;
-          if (statusFilter === 'all') matchesStatus = true;
-          else if (statusFilter === 'active') {
-            matchesStatus = ['received', 'preparing'].includes(o.status) || (o.status === 'ready' && !o.driver_id);
-          } else if (statusFilter === 'out_for_delivery') {
-            matchesStatus = o.status === 'out_for_delivery' || (o.status === 'ready' && o.driver_id);
-          } else {
-            matchesStatus = o.status === statusFilter;
-          }
-          return matchesSearch && matchesStatus;
-        }).length}
-      </div>
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <div className={styles.sidebarBrandGroup}>
