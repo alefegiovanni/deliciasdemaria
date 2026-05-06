@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { ShoppingBag, Plus, Minus, X, MapPin, CheckCircle2, ChevronRight, ArrowLeft, Search, Clock, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -24,6 +24,7 @@ export default function MenuPage() {
   const [storeAddress, setStoreAddress] = useState('');
   const [calculatingFee, setCalculatingFee] = useState(false);
   const [distance, setDistance] = useState<number | null>(null);
+  const storeCoordsRef = useRef<{lat: number, lon: number} | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
 
@@ -182,20 +183,19 @@ export default function MenuPage() {
   const getCoordinates = async (address: string) => {
     try {
       const searchAddr = address.includes('Caçapava') ? address : `${address}, Caçapava, SP, Brasil`;
-      let response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchAddr)}&limit=1`);
-      let data = await response.json();
-
-      if (!data || data.length === 0) {
-        const simpleAddr = address.split(',')[0] + ', Caçapava, SP, Brasil';
-        response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(simpleAddr)}&limit=1`);
-        data = await response.json();
-      }
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchAddr)}&limit=1`, {
+        headers: {
+          'User-Agent': 'DeliciasDeMaria/1.0'
+        }
+      });
+      const data = await response.json();
 
       if (data && data.length > 0) {
         return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
       }
       return null;
     } catch (error) {
+      console.error('Geocoding error:', error);
       return null;
     }
   };
@@ -212,17 +212,27 @@ export default function MenuPage() {
   const updateDeliveryFee = async (customerAddr: string) => {
     if (!customerAddr || !storeAddress) return;
     setCalculatingFee(true);
-    const storeCoords = await getCoordinates(storeAddress);
-    const customerCoords = await getCoordinates(customerAddr);
+    
+    try {
+      if (!storeCoordsRef.current) {
+        storeCoordsRef.current = await getCoordinates(storeAddress);
+      }
+      
+      const storeCoords = storeCoordsRef.current;
+      const customerCoords = await getCoordinates(customerAddr);
 
-    if (storeCoords && customerCoords) {
-      const dist = calculateDistance(storeCoords.lat, storeCoords.lon, customerCoords.lat, customerCoords.lon);
-      setDistance(dist);
-      const feeRule = distanceFees.find(f => dist <= f.maxKm);
-      if (feeRule) setSelectedFee(feeRule.price);
-      else setSelectedFee(distanceFees[distanceFees.length - 1]?.price || 0);
+      if (storeCoords && customerCoords) {
+        const dist = calculateDistance(storeCoords.lat, storeCoords.lon, customerCoords.lat, customerCoords.lon);
+        setDistance(dist);
+        const feeRule = distanceFees.find(f => dist <= f.maxKm);
+        if (feeRule) setSelectedFee(feeRule.price);
+        else setSelectedFee(distanceFees[distanceFees.length - 1]?.price || 0);
+      }
+    } catch (err) {
+      console.error('Fee calculation error:', err);
+    } finally {
+      setCalculatingFee(false);
     }
-    setCalculatingFee(false);
   };
 
   const handleCEPBlur = async () => {
@@ -285,7 +295,9 @@ export default function MenuPage() {
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
+
     try {
       const orderData = {
         customer_name: customerName,
@@ -296,17 +308,25 @@ export default function MenuPage() {
         notes: obs,
         total,
         status: 'received',
-        estimated_time: estimatedTime
+        estimated_time: estimatedTime,
+        delivery_fee: selectedFee,
+        distance_km: distance
       };
+
       const newOrder = await createOrder(orderData);
+      
+      if (!newOrder?.id) throw new Error('Não foi possível obter o ID do pedido.');
+
       setOrderId(newOrder.id);
       localStorage.setItem('last_order_id', newOrder.id);
       saveAddress();
       setStep('success');
       setCart([]); 
     } catch (err: any) {
-      console.error(err);
-      alert(`Erro ao enviar pedido: ${err.message || 'Verifique sua conexão'}`);
+      console.error('Order submission error:', err);
+      // Detailed error message for debugging
+      const errorMsg = err.message || 'Erro de conexão';
+      alert(`Erro ao enviar pedido: ${errorMsg}. Por favor, verifique sua internet e tente novamente.`);
     } finally {
       setLoading(false);
     }
