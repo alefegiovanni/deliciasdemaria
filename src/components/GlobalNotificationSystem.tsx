@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 export default function GlobalNotificationSystem() {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const notifiedOrdersRef = useRef<Set<string>>(new Set());
-  const lastOrderTimestampRef = useRef<string>(new Date().toISOString());
+  const lastOrderTimestampRef = useRef<string>(new Date(Date.now() - 120000).toISOString());
   const [isAdmin, setIsAdmin] = useState(false);
 
   // Sync admin status

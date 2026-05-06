@@ -132,6 +132,9 @@ export default function KitchenDashboard() {
         } catch (err) {
           // Silent fail — next tick will try again
         }
+      } else {
+        // Recovery mechanism: if lastOrderRef is still null, it means initial fetch failed or hasn't finished
+        await fetchOrders(true);
       }
       
       if (isMounted) {
@@ -231,9 +234,9 @@ export default function KitchenDashboard() {
             lastOrderRef.current = latestOrderDate;
           }
         } else if (isInitial) {
-          // If database is completely empty on initial load, set to current time
-          // so polling has a valid timestamp to start from
-          lastOrderRef.current = new Date().toISOString();
+          // If database is completely empty on initial load, set to 2 minutes ago
+          // to account for any clock skew between client and server
+          lastOrderRef.current = new Date(Date.now() - 120000).toISOString();
         }
       }
     } catch (err) {
