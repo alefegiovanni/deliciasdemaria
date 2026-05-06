@@ -72,7 +72,7 @@ export default function DriverDashboard() {
         pollTimeout = setTimeout(poll, 1500);
       }
     };
-    poll();
+    pollTimeout = setTimeout(poll, 1500);
 
     // Listen for driver status changes (Blocking)
     let channelStatus: any;

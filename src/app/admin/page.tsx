@@ -132,9 +132,6 @@ export default function KitchenDashboard() {
         } catch (err) {
           // Silent fail — next tick will try again
         }
-      } else {
-        // Recovery mechanism: if lastOrderRef is still null, it means initial fetch failed or hasn't finished
-        await fetchOrders(true);
       }
       
       if (isMounted) {
@@ -153,9 +150,9 @@ export default function KitchenDashboard() {
       }
     };
 
-    // Start polling
-    pollFast();
-    pollFull();
+    // Start polling delays
+    fastPollTimeout = setTimeout(pollFast, 1500);
+    fullPollTimeout = setTimeout(pollFull, 30000);
 
     return () => {
       isMounted = false;
