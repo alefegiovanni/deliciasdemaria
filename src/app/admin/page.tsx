@@ -62,16 +62,43 @@ export default function KitchenDashboard() {
     fetchClients();
     fetchDrivers();
 
+    // High-performance real-time subscription
     const channel = supabase
-      .channel('schema-db-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => fetchOrders())
+      .channel('kitchen-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
+        console.log('New order received via Realtime:', payload.new);
+        const newOrder = payload.new;
+        
+        setOrders(prev => {
+          // Prevent duplicates if polling and realtime overlap
+          if (prev.some(o => o.id === newOrder.id)) return prev;
+          
+          // Trigger sound and alert immediately
+          playNotificationSound();
+          setShowNewOrderAlert(true);
+          setTimeout(() => setShowNewOrderAlert(false), 6000);
+          
+          return [newOrder, ...prev];
+        });
+        
+        // Update ref to avoid double-firing in polling
+        if (!lastOrderRef.current || newOrder.created_at > lastOrderRef.current) {
+          lastOrderRef.current = newOrder.created_at;
+        }
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, (payload) => {
+        setOrders(prev => prev.map(o => o.id === payload.new.id ? payload.new : o));
+      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => fetchProducts())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => fetchSettings())
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Supabase Realtime Status:', status);
+      });
 
+    // Aggressive polling fallback (2 seconds) as requested for critical operations
     const pollInterval = setInterval(() => {
       fetchOrders();
-    }, 10000);
+    }, 2000);
 
     return () => {
       supabase.removeChannel(channel);
@@ -122,29 +149,34 @@ export default function KitchenDashboard() {
   };
 
   const fetchOrders = async (isInitial = false) => {
-    const { data, error } = await supabase
-      .from('orders')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (!error && data) {
-      setOrders(data);
-      // Update clients list whenever orders change
-      extractClients(data);
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50); // Optimization: only fetch last 50 for performance
+      
+      if (!error && data) {
+        setOrders(data);
+        extractClients(data);
 
-      if (data.length > 0) {
-        const latestOrderDate = data[0].created_at;
-        
-        if (!isInitial && lastOrderRef.current && latestOrderDate > lastOrderRef.current) {
-          playNotificationSound();
-          setShowNewOrderAlert(true);
-          setTimeout(() => setShowNewOrderAlert(false), 6000);
-        }
+        if (data.length > 0) {
+          const latestOrderDate = data[0].created_at;
+          
+          if (!isInitial && lastOrderRef.current && latestOrderDate > lastOrderRef.current) {
+            console.log('New order detected via Polling:', latestOrderDate);
+            playNotificationSound();
+            setShowNewOrderAlert(true);
+            setTimeout(() => setShowNewOrderAlert(false), 6000);
+          }
 
-        if (!lastOrderRef.current || latestOrderDate > lastOrderRef.current) {
-          lastOrderRef.current = latestOrderDate;
+          if (!lastOrderRef.current || latestOrderDate > lastOrderRef.current) {
+            lastOrderRef.current = latestOrderDate;
+          }
         }
       }
+    } catch (err) {
+      console.error('Failed to fetch orders:', err);
     }
   };
 
