@@ -123,22 +123,39 @@ export default function DriverDashboard() {
 
   const fetchReadyOrders = async () => {
     try {
-      setIsFetching(true);
       const driver = currentDriverRef.current;
+      
+      if (!driver || !driver.id) {
+        setOrders([]);
+        return;
+      }
 
-      // Fetch ALL orders assigned to this driver that are ready for pickup
-      if (driver) {
-        const { data: available, error: errAvail } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('status', 'out_for_delivery')
-          .eq('driver_id', driver.id)
-          .order('created_at', { ascending: false });
+      setIsFetching(true);
 
-        if (!errAvail && available) {
-          // If we have an active tracking order, we only show others in the "Ready to Pickup" list
-          setOrders(available.filter(o => o.id !== activeOrder?.id));
-        }
+      // 1. Fetch ALL orders assigned to this specific driver that are ready/in route
+      const { data: allAssigned, error: errAvail } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('driver_id', driver.id)
+        .in('status', ['out_for_delivery', 'dispatched']) // Support both legacy and new status
+        .order('created_at', { ascending: false });
+
+      if (!errAvail && allAssigned) {
+        // 2. Identify if there's an active delivery (already picked up or being tracked)
+        // For now, we assume the driver can only have ONE active delivery at a time.
+        // We'll check if they are already tracking one in the state.
+        
+        // If we don't have an activeOrder in state, but the DB says we have one in 'out_for_delivery'
+        // we should check if it's already "accepted" or just "assigned".
+        // Logic: Maria assigns -> it's in the "Ready" list. Driver clicks "Confirmar" -> it's "Active".
+        
+        // For simplicity: The list shows EVERYTHING assigned to them.
+        // We filter out the one that is currently active in the UI.
+        setOrders(allAssigned.filter(o => o.id !== activeOrder?.id));
+
+        // 3. Auto-recovery: If we have an assigned order but no activeOrder state, 
+        // and we were previously tracking something (or just refreshed), we could auto-resume.
+        // But let's keep it simple: the driver sees their assigned orders and confirms pickup.
       }
     } catch (err) {
       console.error('[fetchReadyOrders] Error:', err);
