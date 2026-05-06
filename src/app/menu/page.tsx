@@ -712,7 +712,7 @@ export default function MenuPage() {
                         </div>
                       </div>
                       <button 
-                        onClick={() => router.push(`/order/${order.id}`)}
+                        onClick={() => router.push(`/order/${order.id}?from=orders`)}
                         className={styles.addBtn}
                         style={{ width: 'auto', padding: '0.5rem 1rem', borderRadius: '10px' }}
                       >

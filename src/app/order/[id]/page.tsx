@@ -108,11 +108,11 @@ export default function OrderTracking() {
             <header className={styles.header}>
               <div className={styles.topNav}>
                 <Link 
-                  href={from === 'admin' ? '/admin' : from === 'driver' ? '/driver' : '/'} 
+                  href={from === 'admin' ? '/admin' : from === 'driver' ? '/driver' : from === 'orders' ? '/menu?recovery=true' : '/'} 
                   className={styles.backLink}
                 >
                   <ArrowLeft size={20} />
-                  {from === 'admin' ? 'Painel Admin' : from === 'driver' ? 'Painel Motoboy' : 'Cardápio'}
+                  {from === 'admin' ? 'Painel Admin' : from === 'driver' ? 'Painel Motoboy' : from === 'orders' ? 'Meus Pedidos' : 'Cardápio'}
                 </Link>
               </div>
               <motion.h1 
