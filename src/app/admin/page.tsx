@@ -376,7 +376,7 @@ export default function KitchenDashboard() {
     
     if (error) {
       console.error('Erro ao atualizar status:', error);
-      alert('Erro ao atualizar status: ' + error.message);
+      alert(`ERRO DE BANCO DE DADOS!\nTentando mudar para: "${newStatus}"\nMotoboy ID: ${driverId || 'Nenhum'}\n\nErro Original: ${error.message}`);
       fetchOrders(); // Revert to server state
     } else {
       fetchOrders(); // Ensure fresh data
