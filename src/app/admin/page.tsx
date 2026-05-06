@@ -84,11 +84,17 @@ export default function KitchenDashboard() {
       return;
     }
 
-    fetchOrders(true);
-    fetchSettings();
-    fetchProducts();
-    fetchClients();
-    fetchDrivers();
+    // Fix for Desktop Browser Connection Pool Exhaustion:
+    // Launching 5 parallel requests + WebSocket immediately can freeze Edge/Chrome.
+    // We await the most critical one first (orders), then launch the others.
+    const initData = async () => {
+      await fetchOrders(true);
+      fetchSettings();
+      fetchProducts();
+      fetchClients();
+      fetchDrivers();
+    };
+    initData();
 
     // Strategy 1: Supabase Realtime WebSocket (fires instantly when configured)
     const channel = supabase
