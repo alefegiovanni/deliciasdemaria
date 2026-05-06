@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { Clock, CheckCircle2, Package, Truck, Utensils, Phone, MapPin, User, ArrowLeft } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import styles from './order.module.css';
@@ -16,6 +16,33 @@ const statuses = [
   { id: 'delivered', label: 'Entregue', icon: CheckCircle2 },
 ];
 
+function OrderSkeleton() {
+  return (
+    <motion.main 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className={styles.main}
+    >
+      <div className="container">
+        <div className={styles.header}>
+          <div className={styles.skeletonHeader} />
+          <div className={styles.skeletonTitle} />
+          <div className={styles.skeletonIdentity} />
+        </div>
+        <div className={styles.statusSection}>
+          <div className={styles.skeletonEstimated} />
+          <div className={styles.skeletonTimeline}>
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className={styles.skeletonItem} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </motion.main>
+  );
+}
+
 export default function OrderTracking() {
   const { id } = useParams();
   const searchParams = useSearchParams();
@@ -27,19 +54,21 @@ export default function OrderTracking() {
     if (!id) return;
 
     const fetchOrder = async () => {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', id)
-        .single();
-      
-      if (!error && data) setOrder(data);
-      setLoading(false);
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        if (!error && data) setOrder(data);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchOrder();
 
-    // Subscribe to changes for this specific order
     const channel = supabase
       .channel(`order-status-${id}`)
       .on(
@@ -54,94 +83,152 @@ export default function OrderTracking() {
     };
   }, [id]);
 
-  if (loading) return <div className="container py-20 text-center">Carregando pedido...</div>;
-  if (!order) return <div className="container py-20 text-center">Pedido não encontrado.</div>;
-
-  const currentStatus = order.status;
-  const estimatedTime = order.estimated_time || 40;
-
-  const currentIndex = statuses.findIndex(s => s.id === currentStatus);
-
   return (
-    <main className={styles.main}>
-      <div className="container">
-        <header className={styles.header}>
-          <div className={styles.topNav}>
-            <Link 
-              href={from === 'admin' ? '/admin' : from === 'driver' ? '/driver' : '/'} 
-              className={styles.backLink}
-            >
-              <ArrowLeft size={20} />
-              {from === 'admin' ? 'Painel Admin' : from === 'driver' ? 'Painel Motoboy' : 'Cardápio'}
-            </Link>
-          </div>
-          <h1 className="font-serif">Status do seu Pedido</h1>
-          <div className={styles.orderIdentity}>
-            <p className={styles.orderId}># {order.id.slice(0, 8)}</p>
-            <div className={styles.customerName}>
-              <User size={18} />
-              <span>{order.customer_name}</span>
-            </div>
-          </div>
-        </header>
-
-        <section className={styles.statusSection}>
-          <div className={styles.estimatedCard}>
-            <div className={styles.estimatedInfo}>
-              <Clock className={styles.clockIcon} size={32} />
-              <div>
-                <h3>Tempo estimado de preparo</h3>
-                <p className={styles.timeValue}>{estimatedTime} min</p>
+    <AnimatePresence mode="wait">
+      {loading ? (
+        <OrderSkeleton key="skeleton" />
+      ) : !order ? (
+        <motion.div 
+          key="not-found"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="container py-20 text-center"
+        >
+          Pedido não encontrado.
+        </motion.div>
+      ) : (
+        <motion.main 
+          key="content"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className={styles.main}
+        >
+          <div className="container">
+            <header className={styles.header}>
+              <div className={styles.topNav}>
+                <Link 
+                  href={from === 'admin' ? '/admin' : from === 'driver' ? '/driver' : '/'} 
+                  className={styles.backLink}
+                >
+                  <ArrowLeft size={20} />
+                  {from === 'admin' ? 'Painel Admin' : from === 'driver' ? 'Painel Motoboy' : 'Cardápio'}
+                </Link>
               </div>
-            </div>
-          </div>
+              <motion.h1 
+                initial={{ y: -20 }}
+                animate={{ y: 0 }}
+                className="font-serif"
+              >
+                Status do seu Pedido
+              </motion.h1>
+              <div className={styles.orderIdentity}>
+                <p className={styles.orderId}># {order.id.slice(0, 8)}</p>
+                <div className={styles.customerName}>
+                  <User size={18} />
+                  <span>{order.customer_name}</span>
+                </div>
+              </div>
+            </header>
 
-          <div className={styles.timeline}>
-            {statuses.map((status, index) => {
-              const Icon = status.icon;
-              const isPast = index < currentIndex;
-              const isCurrent = index === currentIndex;
-              const isDelivered = status.id === 'delivered' && (isCurrent || isPast);
-
-              return (
-                <div key={status.id} className={`${styles.statusItem} ${isPast ? styles.past : ''} ${isCurrent ? styles.current : ''} ${isDelivered ? styles.delivered : ''}`}>
-                  <div className={styles.statusIconWrapper}>
-                    <Icon size={24} />
-                    {index < statuses.length - 1 && <div className={styles.line} />}
-                  </div>
-                  <div className={styles.statusText}>
-                    <p className={styles.statusLabel}>{status.label}</p>
-                    {isCurrent && !isDelivered && <p className={styles.statusBadge}>Em andamento</p>}
-                    {(isPast || isDelivered) && <p className={styles.statusBadge}>Concluído</p>}
+            <section className={styles.statusSection}>
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className={styles.estimatedCard}
+              >
+                <div className={styles.estimatedInfo}>
+                  <Clock className={styles.clockIcon} size={32} />
+                  <div>
+                    <h3>Tempo estimado de preparo</h3>
+                    <p className={styles.timeValue}>{order.estimated_time || 40} min</p>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </section>
+              </motion.div>
 
-        <section className={styles.detailsSection}>
-          <div className={styles.card}>
-            <h3>Detalhes da Entrega</h3>
-            <div className={styles.detailRow}>
-              <MapPin size={18} />
-              <p>{order.address}</p>
-            </div>
-            <div className={styles.detailRow}>
-              <Phone size={18} />
-              <p>{order.customer_phone}</p>
-            </div>
-          </div>
+              <div className={styles.timeline}>
+                {statuses.map((status, index) => {
+                  const Icon = status.icon;
+                  const currentIndex = statuses.findIndex(s => s.id === order.status);
+                  const isPast = index < currentIndex;
+                  const isCurrent = index === currentIndex;
+                  const isDelivered = status.id === 'delivered' && (isCurrent || isPast);
 
-          <div className={styles.card}>
-            <h3>Suporte</h3>
-            <p className={styles.supportText}>Algum problema com seu pedido?</p>
-            <button className={styles.contactBtn}>
-              Falar com o Restaurante
-            </button>
+                  return (
+                    <motion.div 
+                      layout
+                      key={status.id} 
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className={`${styles.statusItem} ${isPast ? styles.past : ''} ${isCurrent ? styles.current : ''} ${isDelivered ? styles.delivered : ''}`}
+                    >
+                      <div className={styles.statusIconWrapper}>
+                        <Icon size={24} />
+                        {index < statuses.length - 1 && <div className={styles.line} />}
+                      </div>
+                      <div className={styles.statusText}>
+                        <p className={styles.statusLabel}>{status.label}</p>
+                        {isCurrent && !isDelivered && (
+                          <motion.p 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className={styles.statusBadge}
+                          >
+                            Em andamento
+                          </motion.p>
+                        )}
+                        {(isPast || isDelivered) && (
+                          <motion.p 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className={styles.statusBadge}
+                          >
+                            Concluído
+                          </motion.p>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className={styles.detailsSection}>
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className={styles.card}
+              >
+                <h3>Detalhes da Entrega</h3>
+                <div className={styles.detailRow}>
+                  <MapPin size={18} />
+                  <p>{order.address}</p>
+                </div>
+                <div className={styles.detailRow}>
+                  <Phone size={18} />
+                  <p>{order.customer_phone}</p>
+                </div>
+              </motion.div>
+
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className={styles.card}
+              >
+                <h3>Suporte</h3>
+                <p className={styles.supportText}>Algum problema com seu pedido?</p>
+                <button className={styles.contactBtn}>
+                  Falar com o Restaurante
+                </button>
+              </motion.div>
+            </section>
           </div>
-        </section>
-      </div>
-    </main>
+        </motion.main>
+      )}
+    </AnimatePresence>
   );
 }
+

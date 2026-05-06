@@ -259,6 +259,63 @@
   margin-bottom: 1rem;
 }
 
+/* Skeletons */
+.skeletonHeader {
+  height: 32px;
+  width: 150px;
+  background: var(--border);
+  margin: 0 auto 1.5rem;
+  border-radius: var(--radius-sm);
+  animation: skeletonPulse 1.5s infinite ease-in-out;
+}
+
+.skeletonTitle {
+  height: 48px;
+  width: 300px;
+  background: var(--border);
+  margin: 0 auto 1rem;
+  border-radius: var(--radius-sm);
+  animation: skeletonPulse 1.5s infinite ease-in-out;
+}
+
+.skeletonIdentity {
+  height: 24px;
+  width: 200px;
+  background: var(--border);
+  margin: 0 auto;
+  border-radius: var(--radius-sm);
+  animation: skeletonPulse 1.5s infinite ease-in-out;
+}
+
+.skeletonEstimated {
+  height: 120px;
+  background: white;
+  border-radius: var(--radius-lg);
+  margin-bottom: 3rem;
+  border: 1px solid var(--border);
+  animation: skeletonPulse 1.5s infinite ease-in-out;
+}
+
+.skeletonTimeline {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.skeletonItem {
+  height: 60px;
+  background: var(--border);
+  border-radius: var(--radius-md);
+  opacity: 0.5;
+  animation: skeletonPulse 1.5s infinite ease-in-out;
+}
+
+@keyframes skeletonPulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 0.3; }
+  100% { opacity: 0.6; }
+}
+
 .contactBtn {
   width: 100%;
   border: 2px solid var(--primary);
@@ -266,9 +323,13 @@
   padding: 0.75rem;
   border-radius: var(--radius-md);
   font-weight: 700;
+  cursor: pointer;
+  background: transparent;
+  transition: var(--transition);
 }
 
 .contactBtn:hover {
   background: var(--primary);
   color: white;
 }
+
