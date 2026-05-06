@@ -634,9 +634,16 @@ const categories = Array.from(new Set(productsList.map(p => p.category)));
                         </div>
                       </td>
                       <td>
-                        <span className={`${styles.statusTag} ${styles[order.status]}`}>
-                          {getStatusLabel(order.status, order.driver_id)}
-                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span className={`${styles.statusTag} ${styles[order.status]}`}>
+                            {getStatusLabel(order.status, order.driver_id)}
+                          </span>
+                          {order.driver_id && (
+                            <span style={{ fontSize: '11px', color: '#666' }}>
+                              Entregador: <strong>{drivers.find(d => d.id === order.driver_id)?.name || 'Carregando...'}</strong>
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td>
                         <div className={styles.actions}>
