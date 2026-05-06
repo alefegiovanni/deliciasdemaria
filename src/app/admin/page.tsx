@@ -108,33 +108,57 @@ export default function KitchenDashboard() {
 
     // Strategy 2: Ultra-fast lightweight polling (1.5s) — ONLY fetches orders 
     // newer than the last known timestamp. Extremely cheap query.
-    // This guarantees max 1.5s delay regardless of Realtime configuration.
-    const fastPollInterval = setInterval(async () => {
-      if (!lastOrderRef.current) return;
-      try {
-        const { data } = await supabase
-          .from('orders')
-          .select('*')
-          .gt('created_at', lastOrderRef.current)
-          .order('created_at', { ascending: true })
-          .limit(10);
+    // This uses recursive setTimeout to prevent overlapping requests on slow networks.
+    let isMounted = true;
+    let fastPollTimeout: NodeJS.Timeout;
+    let fullPollTimeout: NodeJS.Timeout;
 
-        if (data && data.length > 0) {
-          console.log('[FAST-POLL] Found', data.length, 'new order(s)');
-          data.forEach(newOrder => handleNewOrder(newOrder));
+    const pollFast = async () => {
+      if (!isMounted) return;
+      
+      if (lastOrderRef.current) {
+        try {
+          const { data } = await supabase
+            .from('orders')
+            .select('*')
+            .gt('created_at', lastOrderRef.current)
+            .order('created_at', { ascending: true })
+            .limit(10);
+
+          if (data && data.length > 0) {
+            console.log('[FAST-POLL] Found', data.length, 'new order(s)');
+            data.forEach(newOrder => handleNewOrder(newOrder));
+          }
+        } catch (err) {
+          // Silent fail — next tick will try again
         }
-      } catch (err) {
-        // Silent fail — next tick will try again
       }
-    }, 1500);
+      
+      if (isMounted) {
+        fastPollTimeout = setTimeout(pollFast, 1500);
+      }
+    };
 
     // Strategy 3: Full refresh every 30s as final safety net
-    const fullPollInterval = setInterval(() => fetchOrders(), 30000);
+    const pollFull = async () => {
+      if (!isMounted) return;
+      
+      await fetchOrders();
+      
+      if (isMounted) {
+        fullPollTimeout = setTimeout(pollFull, 30000);
+      }
+    };
+
+    // Start polling
+    pollFast();
+    pollFull();
 
     return () => {
+      isMounted = false;
       supabase.removeChannel(channel);
-      clearInterval(fastPollInterval);
-      clearInterval(fullPollInterval);
+      clearTimeout(fastPollTimeout);
+      clearTimeout(fullPollTimeout);
     };
   }, [handleNewOrder]);
 

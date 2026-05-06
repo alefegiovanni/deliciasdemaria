@@ -62,7 +62,17 @@ export default function DriverDashboard() {
       .subscribe();
 
     // Strategy 2: Fast Polling (1.5s) - Essential for Mobile reliability
-    const pollInterval = setInterval(() => fetchReadyOrders(), 1500);
+    let isMounted = true;
+    let pollTimeout: NodeJS.Timeout;
+
+    const poll = async () => {
+      if (!isMounted) return;
+      await fetchReadyOrders();
+      if (isMounted) {
+        pollTimeout = setTimeout(poll, 1500);
+      }
+    };
+    poll();
 
     // Listen for driver status changes (Blocking)
     let channelStatus: any;
@@ -83,8 +93,9 @@ export default function DriverDashboard() {
     }
 
     return () => {
+      isMounted = false;
       supabase.removeChannel(channelOrders);
-      clearInterval(pollInterval);
+      clearTimeout(pollTimeout);
       if (channelStatus) supabase.removeChannel(channelStatus);
       if (watchId) navigator.geolocation.clearWatch(watchId);
     };

@@ -110,7 +110,12 @@ export default function GlobalNotificationSystem() {
       .subscribe();
 
     // Strategy 2: Fast Polling (1.5s) fallback
-    const pollInterval = setInterval(async () => {
+    let isMounted = true;
+    let pollTimeout: NodeJS.Timeout;
+
+    const poll = async () => {
+      if (!isMounted) return;
+      
       try {
         const { data } = await supabase
           .from('orders')
@@ -125,11 +130,18 @@ export default function GlobalNotificationSystem() {
       } catch (err) {
         // Silent fail
       }
-    }, 1500);
+      
+      if (isMounted) {
+        pollTimeout = setTimeout(poll, 1500);
+      }
+    };
+
+    poll();
 
     return () => {
+      isMounted = false;
       supabase.removeChannel(channel);
-      clearInterval(pollInterval);
+      clearTimeout(pollTimeout);
       window.removeEventListener('click', unlockAudio);
       window.removeEventListener('touchstart', unlockAudio);
     };
