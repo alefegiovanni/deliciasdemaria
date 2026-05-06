@@ -126,34 +126,18 @@ export default function DriverDashboard() {
       setIsFetching(true);
       const driver = currentDriverRef.current;
 
-      // Fetch ALL orders ready for delivery pool (status = out_for_delivery and no driver assigned yet)
-      const { data: available, error: errAvail } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('status', 'out_for_delivery')
-        .is('driver_id', null)
-        .order('created_at', { ascending: false });
-
-      if (!errAvail && available) {
-        setOrders(available);
-      }
-
-      // Fetch driver's active order
+      // Fetch ALL orders assigned to this driver that are ready for pickup
       if (driver) {
-        const { data: myActive } = await supabase
+        const { data: available, error: errAvail } = await supabase
           .from('orders')
           .select('*')
           .eq('status', 'out_for_delivery')
           .eq('driver_id', driver.id)
-          .maybeSingle();
+          .order('created_at', { ascending: false });
 
-        if (myActive) {
-          setActiveOrder(myActive);
-          setIsTracking(true);
-          // startGpsTracking is handled separately or safely
-        } else {
-          setActiveOrder(null);
-          setIsTracking(false);
+        if (!errAvail && available) {
+          // If we have an active tracking order, we only show others in the "Ready to Pickup" list
+          setOrders(available.filter(o => o.id !== activeOrder?.id));
         }
       }
     } catch (err) {
@@ -193,25 +177,33 @@ export default function DriverDashboard() {
   const acceptOrder = async (orderId: string) => {
     if (!currentDriver) return;
     
-    const { data, error } = await supabase
-      .from('orders')
-      .update({ 
-        status: 'out_for_delivery',
-        driver_id: currentDriver.id 
-      })
-      .eq('id', orderId)
-      .is('driver_id', null)
-      .select();
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .update({ 
+          status: 'out_for_delivery',
+          driver_id: currentDriver.id 
+        })
+        .eq('id', orderId)
+        .eq('driver_id', currentDriver.id)
+        .select();
 
-    if (error || !data || data.length === 0) {
-      alert('Este pedido já foi pego por outro motoboy!');
-    } else {
-      const accepted = data[0];
-      setActiveOrder(accepted);
-      setIsTracking(true);
-      startGpsTracking(accepted.id);
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        alert('Este pedido não está mais disponível ou não foi atribuído a você.');
+      } else {
+        const accepted = data[0];
+        setActiveOrder(accepted);
+        setIsTracking(true);
+        // GPS tracking will start via the useEffect watching [activeOrder, isTracking]
+      }
+    } catch (err: any) {
+      console.error('[acceptOrder] Error:', err);
+      alert('Erro ao aceitar pedido: ' + (err.message || 'Verifique sua conexão.'));
+    } finally {
+      fetchReadyOrders();
     }
-    fetchReadyOrders();
   };
 
 
@@ -317,7 +309,7 @@ export default function DriverDashboard() {
               Sincronização: {orders.length} pedidos encontrados | Última atualização: {new Date().toLocaleTimeString()}
             </div>
             <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>Entregas Disponíveis</h2>
+              <h2 className={styles.sectionTitle}>Seus Pedidos para Retirar</h2>
               <button 
                 onClick={() => fetchReadyOrders()} 
                 className={`${styles.refreshBtn} ${isFetching ? styles.spinning : ''}`}
@@ -327,7 +319,7 @@ export default function DriverDashboard() {
               </button>
             </div>
             <div className={styles.orderList}>
-              {orders.filter(o => !o.driver_id).map(order => (
+              {orders.map(order => (
                 <div key={order.id} className={styles.orderCard}>
                   <div className={styles.orderInfo}>
                     <div className={styles.orderHead}>
@@ -338,14 +330,14 @@ export default function DriverDashboard() {
                     <p className={styles.addressText}><MapPin size={16} /> {order.address}</p>
                   </div>
                   <button onClick={() => acceptOrder(order.id)} className={styles.btnStart}>
-                    Aceitar Entrega
+                    Confirmar Retirada
                   </button>
                 </div>
               ))}
-              {orders.filter(o => !o.driver_id).length === 0 && (
+              {orders.length === 0 && (
                 <div className={styles.emptyState}>
                   <AlertCircle size={48} />
-                  <p>Sem pedidos prontos agora.</p>
+                  <p>Você não tem pedidos atribuídos no momento.</p>
                 </div>
               )}
             </div>

@@ -45,6 +45,8 @@ export default function KitchenDashboard() {
   const [showNewOrderAlert, setShowNewOrderAlert] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'active' | 'all' | 'received' | 'preparing' | 'ready' | 'dispatched' | 'out_for_delivery' | 'delivered' | 'cancelled'>('active');
+  const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
+  const [orderToDispatch, setOrderToDispatch] = useState<string | null>(null);
   const router = useRouter();
   const lastOrderRef = useRef<string | null>(null);
 
@@ -387,13 +389,16 @@ export default function KitchenDashboard() {
     await supabase.from('settings').update({ prep_time_minutes: newTime }).eq('id', 'delicias_maria');
   };
 
-  const updateStatus = async (id: string, newStatus: string) => {
+  const updateStatus = async (id: string, newStatus: string, driverId: string | null = null) => {
     // Optimistic update
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, status: newStatus } : o));
+    setOrders(prev => prev.map(o => o.id === id ? { ...o, status: newStatus, driver_id: driverId || o.driver_id } : o));
+
+    const updates: any = { status: newStatus };
+    if (driverId) updates.driver_id = driverId;
 
     const { error } = await supabase
       .from('orders')
-      .update({ status: newStatus })
+      .update(updates)
       .eq('id', id);
     
     if (error) {
@@ -656,7 +661,10 @@ export default function KitchenDashboard() {
                             <button onClick={() => updateStatus(order.id, 'ready')} className={styles.btnReady}>Pronto</button>
                           )}
                           {order.status === 'ready' && (
-                            <button onClick={() => updateStatus(order.id, 'out_for_delivery')} className={styles.btnShip}>Enviar</button>
+                            <button onClick={() => {
+                              setOrderToDispatch(order.id);
+                              setIsDispatchModalOpen(true);
+                            }} className={styles.btnShip}>Enviar</button>
                           )}
                           {order.status !== 'delivered' && order.status !== 'cancelled' && (
                             <button 
@@ -1198,6 +1206,62 @@ export default function KitchenDashboard() {
           </>
         )}
       </div>
+      <AnimatePresence>
+        {isDispatchModalOpen && (
+          <div className={styles.modalOverlay}>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className={styles.modalContent}
+              style={{ maxWidth: '400px' }}
+            >
+              <div className={styles.modalHeader}>
+                <h2>Selecionar Motoboy</h2>
+                <button onClick={() => setIsDispatchModalOpen(false)} className={styles.btnClose}>
+                  <X size={24} />
+                </button>
+              </div>
+              <p style={{ marginBottom: '1.5rem', color: '#666' }}>Escolha o motoboy para realizar esta entrega:</p>
+              
+              <div className={styles.driverGrid}>
+                {drivers.filter(d => d.active).map(driver => (
+                  <button 
+                    key={driver.id}
+                    className={styles.driverSelectBtn}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 16px',
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '12px',
+                      marginBottom: '10px',
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                    onClick={() => {
+                      if (orderToDispatch) {
+                        updateStatus(orderToDispatch, 'out_for_delivery', driver.id);
+                        setIsDispatchModalOpen(false);
+                        setOrderToDispatch(null);
+                      }
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 700, color: '#1a1a2e' }}>{driver.name}</div>
+                      <div style={{ fontSize: '12px', color: '#64748b' }}>{driver.phone}</div>
+                    </div>
+                    <ChevronRight size={20} color="#94a3b8" />
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
