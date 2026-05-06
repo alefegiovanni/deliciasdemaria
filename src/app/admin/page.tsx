@@ -44,7 +44,7 @@ export default function KitchenDashboard() {
   const [search, setSearch] = useState('');
   const [showNewOrderAlert, setShowNewOrderAlert] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<'active' | 'all' | 'received' | 'preparing' | 'ready' | 'out_for_delivery' | 'delivered' | 'cancelled'>('active');
+  const [statusFilter, setStatusFilter] = useState<'active' | 'all' | 'received' | 'preparing' | 'ready' | 'dispatched' | 'out_for_delivery' | 'delivered' | 'cancelled'>('active');
   const lastOrderRef = useRef<string | null>(null);
   // Create AudioContext once — avoids autoplay-policy blocks after first user click
   const audioCtxRef = useRef<any>(null);
@@ -464,6 +464,7 @@ export default function KitchenDashboard() {
       case 'received': return 'Recebido';
       case 'preparing': return 'Em Preparo';
       case 'ready': return 'Pronto';
+      case 'dispatched': return 'Ag. Motoboy';
       case 'out_for_delivery': return 'Em Rota';
       case 'delivered': return 'Entregue';
       default: return status;
@@ -637,7 +638,7 @@ export default function KitchenDashboard() {
                 onClick={() => setStatusFilter('out_for_delivery')}
               >
                 <p>Em Rota</p>
-                <h3>{orders.filter(o => o.status === 'out_for_delivery').length}</h3>
+                <h3>{orders.filter(o => o.status === 'out_for_delivery' || o.status === 'dispatched').length}</h3>
               </div>
               <div 
                 className={`${styles.statCard} ${statusFilter === 'delivered' ? styles.statCardActive : ''} ${styles.statCardHistory}`}
@@ -673,7 +674,7 @@ export default function KitchenDashboard() {
                   {orders
                     .filter(o => {
                       const matchesSearch = o.customer_name?.toLowerCase().includes(search.toLowerCase()) || o.id.includes(search);
-                      const matchesStatus = statusFilter === 'all' || o.status === statusFilter || (statusFilter === 'active' && ['received', 'preparing', 'ready'].includes(o.status));
+                      const matchesStatus = statusFilter === 'all' || o.status === statusFilter || (statusFilter === 'active' && ['received', 'preparing', 'ready', 'dispatched'].includes(o.status)) || (statusFilter === 'out_for_delivery' && ['out_for_delivery', 'dispatched'].includes(o.status));
                       return matchesSearch && matchesStatus;
                     })
                     .map(order => (
@@ -719,7 +720,7 @@ export default function KitchenDashboard() {
                             <button onClick={() => updateStatus(order.id, 'ready')} className={styles.btnReady}>Pronto</button>
                           )}
                           {order.status === 'ready' && (
-                            <button onClick={() => updateStatus(order.id, 'out_for_delivery')} className={styles.btnShip}>Enviar</button>
+                            <button onClick={() => updateStatus(order.id, 'dispatched')} className={styles.btnShip}>Enviar</button>
                           )}
                           {order.status !== 'delivered' && order.status !== 'cancelled' && (
                             <button 

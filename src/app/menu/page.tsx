@@ -708,7 +708,7 @@ export default function MenuPage() {
                           Pedido #{order.id.slice(-4).toUpperCase()}
                         </div>
                         <div style={{ fontSize: '0.8rem', color: '#666' }}>
-                          Status: {order.status === 'received' ? 'Recebido' : order.status === 'preparing' ? 'Preparando' : order.status === 'ready' ? 'Pronto' : order.status === 'out_for_delivery' ? 'Em Entrega' : order.status === 'delivered' ? 'Entregue' : 'Cancelado'}
+                          Status: {order.status === 'received' ? 'Recebido' : order.status === 'preparing' ? 'Preparando' : order.status === 'ready' ? 'Pronto' : order.status === 'dispatched' ? 'Ag. Motoboy' : order.status === 'out_for_delivery' ? 'Em Entrega' : order.status === 'delivered' ? 'Entregue' : 'Cancelado'}
                         </div>
                       </div>
                       <button 

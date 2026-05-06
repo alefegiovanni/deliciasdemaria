@@ -12,6 +12,7 @@ const statuses = [
   { id: 'received', label: 'Pedido Recebido', icon: Package },
   { id: 'preparing', label: 'Em Preparo', icon: Utensils },
   { id: 'ready', label: 'Pedido Pronto', icon: CheckCircle2 },
+  { id: 'dispatched', label: 'Aguardando Motoboy', icon: Clock },
   { id: 'out_for_delivery', label: 'Saiu para Entrega', icon: Truck },
   { id: 'delivered', label: 'Entregue', icon: CheckCircle2 },
 ];

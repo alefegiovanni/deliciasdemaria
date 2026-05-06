@@ -114,11 +114,11 @@ export default function DriverDashboard() {
       return;
     }
 
-    // 2. Fetch available orders (ready or out_for_delivery + no owner)
+    // 2. Fetch available orders (dispatched = ready and sent to delivery pool)
     const { data: available } = await supabase
       .from('orders')
       .select('*')
-      .or('status.eq.ready,status.eq.out_for_delivery')
+      .eq('status', 'dispatched')
       .is('driver_id', null)
       .order('created_at', { ascending: false });
 
