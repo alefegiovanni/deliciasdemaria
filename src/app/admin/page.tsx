@@ -1216,8 +1216,22 @@ export default function KitchenDashboard() {
               className={styles.modalContent}
               style={{ maxWidth: '450px' }}
             >
-              <div className={styles.modalHeader}>
-                <h2>Selecionar Motoboy</h2>
+              <div className={styles.modalHeader} style={{ marginBottom: '1.5rem', borderBottom: '2px solid #f1f5f9', paddingBottom: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ 
+                    width: '40px', 
+                    height: '40px', 
+                    backgroundColor: '#fff1f2', 
+                    borderRadius: '10px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    color: '#e11d48'
+                  }}>
+                    <Truck size={24} />
+                  </div>
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#1a1a2e', margin: 0 }}>Selecionar Motoboy</h2>
+                </div>
                 <button onClick={() => setIsDispatchModalOpen(false)} className={styles.btnClose}>
                   <X size={24} />
                 </button>
