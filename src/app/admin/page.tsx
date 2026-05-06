@@ -80,6 +80,33 @@ export default function KitchenDashboard() {
     }
   }, []);
 
+  // Single handler for new orders — called by BOTH Realtime and fast polling
+  // Deduplication guard prevents double sound/alert if both fire at the same time
+  const notifiedOrdersRef = useRef<Set<string>>(new Set());
+  const handleNewOrder = useCallback((newOrder: any) => {
+    // Already handled this order — skip
+    if (notifiedOrdersRef.current.has(newOrder.id)) return;
+    notifiedOrdersRef.current.add(newOrder.id);
+
+    console.log('[HANDLER] New order processed:', newOrder.id);
+
+    // Sound and alert fire SYNCHRONOUSLY — guaranteed instant
+    playNotificationSound();
+    setShowNewOrderAlert(true);
+    setTimeout(() => setShowNewOrderAlert(false), 6000);
+
+    // Update orders list
+    setOrders(prev => {
+      if (prev.some(o => o.id === newOrder.id)) return prev;
+      return [newOrder, ...prev];
+    });
+
+    // Update timestamp ref so fast polling knows this order is handled
+    if (!lastOrderRef.current || newOrder.created_at > lastOrderRef.current) {
+      lastOrderRef.current = newOrder.created_at;
+    }
+  }, [playNotificationSound]);
+
   useEffect(() => {
     const role = localStorage.getItem('user_role');
     if (role !== 'admin') {
@@ -93,51 +120,55 @@ export default function KitchenDashboard() {
     fetchClients();
     fetchDrivers();
 
-    // True realtime: INSERT fires immediately via WebSocket
+    // Strategy 1: Supabase Realtime WebSocket (fires instantly when configured)
     const channel = supabase
-      .channel('kitchen-realtime-v2')
+      .channel('kitchen-realtime-v3')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
         const newOrder = payload.new;
-        console.log('[REALTIME] New order INSERT received:', newOrder.id);
-
-        // ✅ Sound and alert fire SYNCHRONOUSLY here — NOT inside setState
-        playNotificationSound();
-        setShowNewOrderAlert(true);
-        setTimeout(() => setShowNewOrderAlert(false), 6000);
-
-        // Then update the orders list (deduplication guard)
-        setOrders(prev => {
-          if (prev.some(o => o.id === newOrder.id)) return prev;
-          return [newOrder, ...prev];
-        });
-
-        if (!lastOrderRef.current || newOrder.created_at > lastOrderRef.current) {
-          lastOrderRef.current = newOrder.created_at;
-        }
+        console.log('[REALTIME] INSERT via WebSocket:', newOrder.id);
+        handleNewOrder(newOrder);
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, (payload) => {
-        console.log('[REALTIME] Order UPDATE received:', payload.new.id);
         setOrders(prev => prev.map(o => o.id === payload.new.id ? { ...o, ...payload.new } : o));
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => fetchProducts())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => fetchSettings())
       .subscribe((status) => {
-        console.log('[REALTIME] Channel status:', status);
-        // If connection drops, do a single recovery fetch
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.warn('[REALTIME] Connection issue, doing recovery fetch');
-          fetchOrders();
-        }
+        console.log('[REALTIME] Status:', status);
       });
 
-    // Slower safety-net polling only (30s) — realtime handles the fast path
-    const pollInterval = setInterval(() => fetchOrders(), 30000);
+    // Strategy 2: Ultra-fast lightweight polling (1.5s) — ONLY fetches orders 
+    // newer than the last known timestamp. Extremely cheap query.
+    // This guarantees max 1.5s delay regardless of Realtime configuration.
+    const fastPollInterval = setInterval(async () => {
+      if (!lastOrderRef.current) return;
+      try {
+        const { data } = await supabase
+          .from('orders')
+          .select('*')
+          .gt('created_at', lastOrderRef.current)
+          .order('created_at', { ascending: true })
+          .limit(10);
+
+        if (data && data.length > 0) {
+          console.log('[FAST-POLL] Found', data.length, 'new order(s)');
+          data.forEach(newOrder => handleNewOrder(newOrder));
+        }
+      } catch (err) {
+        // Silent fail — next tick will try again
+      }
+    }, 1500);
+
+    // Strategy 3: Full refresh every 30s as final safety net
+    const fullPollInterval = setInterval(() => fetchOrders(), 30000);
 
     return () => {
       supabase.removeChannel(channel);
-      clearInterval(pollInterval);
+      clearInterval(fastPollInterval);
+      clearInterval(fullPollInterval);
     };
-  }, [playNotificationSound]);
+  }, [handleNewOrder]);
+
 
   const fetchProducts = async () => {
     const { data } = await supabase.from('products').select('*').order('category');
