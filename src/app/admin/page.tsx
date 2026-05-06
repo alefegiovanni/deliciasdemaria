@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Package, Search, Clock, Map as MapIcon, ChevronRight, CheckCircle2, Truck, AlertCircle, LogOut, Utensils, Trash2, Plus, ChefHat, Edit, Users, UserX, MessageCircle, MapPin, Bell, Store, Link, Menu, X } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -45,6 +45,7 @@ export default function KitchenDashboard() {
   const [showNewOrderAlert, setShowNewOrderAlert] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'active' | 'all' | 'received' | 'preparing' | 'ready' | 'out_for_delivery' | 'delivered' | 'cancelled'>('active');
+  const lastOrderRef = useRef<string | null>(null);
 
   const router = useRouter();
 
@@ -55,7 +56,7 @@ export default function KitchenDashboard() {
       return;
     }
 
-    fetchOrders();
+    fetchOrders(true);
     fetchSettings();
     fetchProducts();
     fetchClients();
@@ -63,19 +64,18 @@ export default function KitchenDashboard() {
 
     const channel = supabase
       .channel('schema-db-changes')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
-        playNotificationSound();
-        setShowNewOrderAlert(true);
-        setTimeout(() => setShowNewOrderAlert(false), 6000);
-        fetchOrders();
-      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => fetchOrders())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => fetchProducts())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => fetchSettings())
       .subscribe();
 
+    const pollInterval = setInterval(() => {
+      fetchOrders();
+    }, 10000);
+
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(pollInterval);
     };
   }, []);
 
@@ -121,7 +121,7 @@ export default function KitchenDashboard() {
     }
   };
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (isInitial = false) => {
     const { data, error } = await supabase
       .from('orders')
       .select('*')
@@ -131,6 +131,20 @@ export default function KitchenDashboard() {
       setOrders(data);
       // Update clients list whenever orders change
       extractClients(data);
+
+      if (data.length > 0) {
+        const latestOrderDate = data[0].created_at;
+        
+        if (!isInitial && lastOrderRef.current && latestOrderDate > lastOrderRef.current) {
+          playNotificationSound();
+          setShowNewOrderAlert(true);
+          setTimeout(() => setShowNewOrderAlert(false), 6000);
+        }
+
+        if (!lastOrderRef.current || latestOrderDate > lastOrderRef.current) {
+          lastOrderRef.current = latestOrderDate;
+        }
+      }
     }
   };
 
@@ -302,9 +316,20 @@ export default function KitchenDashboard() {
     await supabase.from('settings').update({ is_open: newStatus }).eq('id', 'delicias_maria');
   };
 
+  // Create context once to avoid autoplay policy issues after first interaction
+  const audioCtxRef = useRef<any>(null);
+
   const playNotificationSound = () => {
     try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const audioCtx = audioCtxRef.current;
+      
+      // Attempt to resume the audio context if it's suspended (due to browser autoplay policies)
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
       
       const playBeep = (time: number, freq: number) => {
         const oscillator = audioCtx.createOscillator();
