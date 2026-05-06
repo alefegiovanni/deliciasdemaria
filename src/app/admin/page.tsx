@@ -206,6 +206,10 @@ export default function KitchenDashboard() {
           if (!lastOrderRef.current || latestOrderDate > lastOrderRef.current) {
             lastOrderRef.current = latestOrderDate;
           }
+        } else if (isInitial) {
+          // If database is completely empty on initial load, set to current time
+          // so polling has a valid timestamp to start from
+          lastOrderRef.current = new Date().toISOString();
         }
       }
     } catch (err) {
