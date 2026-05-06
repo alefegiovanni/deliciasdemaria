@@ -119,11 +119,11 @@ export default function DriverDashboard() {
       setIsFetching(true);
       const driver = currentDriverRef.current;
 
-      // Fetch ALL dispatched orders (Available pool)
+      // Fetch ALL orders ready for delivery pool (status = out_for_delivery and no driver assigned yet)
       const { data: available, error: errAvail } = await supabase
         .from('orders')
         .select('*')
-        .eq('status', 'dispatched')
+        .eq('status', 'out_for_delivery')
         .is('driver_id', null)
         .order('created_at', { ascending: false });
 

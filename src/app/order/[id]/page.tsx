@@ -12,7 +12,7 @@ const statuses = [
   { id: 'received', label: 'Pedido Recebido', icon: Package },
   { id: 'preparing', label: 'Em Preparo', icon: Utensils },
   { id: 'ready', label: 'Pedido Pronto', icon: CheckCircle2 },
-  { id: 'dispatched', label: 'Aguardando Motoboy', icon: Clock },
+  { id: 'waiting_driver', label: 'Aguardando Motoboy', icon: Clock },
   { id: 'out_for_delivery', label: 'Saiu para Entrega', icon: Truck },
   { id: 'delivered', label: 'Entregue', icon: CheckCircle2 },
 ];
@@ -150,20 +150,19 @@ export default function OrderTracking() {
               <div className={styles.timeline}>
                 {statuses.map((status, index) => {
                   const Icon = status.icon;
-                  const currentIndex = statuses.findIndex(s => s.id === order.status);
-                  
-                  // Rule: 'Saiu para Entrega' (index 4) ONLY becomes pink if status is 'out_for_delivery' AND driver is assigned
-                  const isSaiuParaEntrega = status.id === 'out_for_delivery';
-                  const isReadyForPink = isSaiuParaEntrega ? (order.status === 'out_for_delivery' && !!order.driver_id) : (index === currentIndex);
+                  const currentIndex = (() => {
+                    if (order.status === 'received') return 0;
+                    if (order.status === 'preparing') return 1;
+                    if (order.status === 'ready') return 2;
+                    if (order.status === 'out_for_delivery') {
+                      return order.driver_id ? 4 : 3;
+                    }
+                    if (order.status === 'delivered') return 5;
+                    return -1;
+                  })();
 
-                  const isPast = order.status === 'dispatched' 
-                    ? index <= currentIndex 
-                    : index < currentIndex;
-                    
-                  const isCurrent = order.status === 'dispatched'
-                    ? false
-                    : isReadyForPink;
-
+                  const isPast = index < currentIndex;
+                  const isCurrent = index === currentIndex;
                   const isDelivered = status.id === 'delivered' && (isCurrent || isPast);
 
                   return (

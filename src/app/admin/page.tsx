@@ -405,13 +405,12 @@ export default function KitchenDashboard() {
     }
   };
 
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = (status: string, driverId?: string | null) => {
     switch (status) {
       case 'received': return 'Recebido';
       case 'preparing': return 'Em Preparo';
       case 'ready': return 'Pronto';
-      case 'dispatched': return 'Ag. Motoboy';
-      case 'out_for_delivery': return 'Em Rota';
+      case 'out_for_delivery': return driverId ? 'Em Rota' : 'Ag. Motoboy';
       case 'delivered': return 'Entregue';
       default: return status;
     }
@@ -645,7 +644,7 @@ export default function KitchenDashboard() {
                       </td>
                       <td>
                         <span className={`${styles.statusTag} ${styles[order.status]}`}>
-                          {getStatusLabel(order.status)}
+                          {getStatusLabel(order.status, order.driver_id)}
                         </span>
                       </td>
                       <td>
@@ -657,7 +656,7 @@ export default function KitchenDashboard() {
                             <button onClick={() => updateStatus(order.id, 'ready')} className={styles.btnReady}>Pronto</button>
                           )}
                           {order.status === 'ready' && (
-                            <button onClick={() => updateStatus(order.id, 'dispatched')} className={styles.btnShip}>Enviar</button>
+                            <button onClick={() => updateStatus(order.id, 'out_for_delivery')} className={styles.btnShip}>Enviar</button>
                           )}
                           {order.status !== 'delivered' && order.status !== 'cancelled' && (
                             <button 
