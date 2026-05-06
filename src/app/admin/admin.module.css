@@ -1616,3 +1616,109 @@
     margin-right: 0;
   }
 }
+
+/* Dispatch Modal Styles */
+.dispatchGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.driverCard {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+}
+
+.driverCard:hover {
+  border-color: var(--primary);
+  background: var(--secondary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(212, 78, 109, 0.1);
+}
+
+.driverCard:active {
+  transform: translateY(0);
+}
+
+.driverAvatar {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, var(--primary), #e11d48);
+  color: white;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  box-shadow: 0 4px 8px rgba(212, 78, 109, 0.2);
+}
+
+.driverInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.driverName {
+  font-weight: 700;
+  color: var(--text-main);
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.driverPhone {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.driverStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.statusBadge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+
+.statusLivre {
+  background: #ecfdf5;
+  color: #10b981;
+}
+
+.statusOcupado {
+  background: #fff1f2;
+  color: #e11d48;
+}
+
+@media (max-width: 768px) {
+  .modalOverlay {
+    align-items: flex-end;
+  }
+  
+  .modalContent {
+    width: 100%;
+    max-width: none !important;
+    border-radius: 24px 24px 0 0;
+    margin: 0;
+    padding-bottom: env(safe-area-inset-bottom, 2rem);
+  }
+}

@@ -1214,7 +1214,7 @@ export default function KitchenDashboard() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className={styles.modalContent}
-              style={{ maxWidth: '400px' }}
+              style={{ maxWidth: '450px' }}
             >
               <div className={styles.modalHeader}>
                 <h2>Selecionar Motoboy</h2>
@@ -1222,41 +1222,49 @@ export default function KitchenDashboard() {
                   <X size={24} />
                 </button>
               </div>
-              <p style={{ marginBottom: '1.5rem', color: '#666' }}>Escolha o motoboy para realizar esta entrega:</p>
+              <p style={{ marginBottom: '1.5rem', color: '#64748b', fontSize: '0.95rem' }}>
+                Escolha o motoboy que realizará esta entrega:
+              </p>
               
-              <div className={styles.driverGrid}>
-                {drivers.filter(d => d.active).map(driver => (
-                  <button 
-                    key={driver.id}
-                    className={styles.driverSelectBtn}
-                    style={{
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '12px 16px',
-                      backgroundColor: '#f8fafc',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '12px',
-                      marginBottom: '10px',
-                      cursor: 'pointer',
-                      textAlign: 'left'
-                    }}
-                    onClick={() => {
-                      if (orderToDispatch) {
-                        updateStatus(orderToDispatch, 'out_for_delivery', driver.id);
-                        setIsDispatchModalOpen(false);
-                        setOrderToDispatch(null);
-                      }
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontWeight: 700, color: '#1a1a2e' }}>{driver.name}</div>
-                      <div style={{ fontSize: '12px', color: '#64748b' }}>{driver.phone}</div>
-                    </div>
-                    <ChevronRight size={20} color="#94a3b8" />
-                  </button>
-                ))}
+              <div className={styles.dispatchGrid}>
+                {drivers.filter(d => d.active).map(driver => {
+                  const activeCount = orders.filter(o => o.driver_id === driver.id && o.status === 'out_for_delivery').length;
+                  const initials = driver.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
+
+                  return (
+                    <button 
+                      key={driver.id}
+                      className={styles.driverCard}
+                      onClick={() => {
+                        if (orderToDispatch) {
+                          updateStatus(orderToDispatch, 'out_for_delivery', driver.id);
+                          setIsDispatchModalOpen(false);
+                          setOrderToDispatch(null);
+                        }
+                      }}
+                    >
+                      <div className={styles.driverAvatar}>
+                        {initials}
+                      </div>
+                      <div className={styles.driverInfo}>
+                        <div className={styles.driverName}>{driver.name}</div>
+                        <div className={styles.driverPhone}>{driver.phone}</div>
+                        <div className={styles.driverStatus}>
+                          <span className={`${styles.statusBadge} ${activeCount > 0 ? styles.statusOcupado : styles.statusLivre}`}>
+                            {activeCount === 0 ? 'Livre' : `${activeCount} em rota`}
+                          </span>
+                        </div>
+                      </div>
+                      <ChevronRight size={20} color="#cbd5e1" />
+                    </button>
+                  );
+                })}
+                {drivers.filter(d => d.active).length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                    <Users size={40} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+                    <p>Nenhum motoboy ativo encontrado.</p>
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>

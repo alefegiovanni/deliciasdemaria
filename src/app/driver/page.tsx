@@ -348,56 +348,39 @@ export default function DriverDashboard() {
             animate={{ opacity: 1, y: 0 }}
             className={styles.activeDelivery}
           >
-            <div className={styles.activeHeader}>
-              <h2>Entrega em Curso</h2>
-              <div className={styles.pulseDot} />
+            <div className={styles.deliveryHeader}>
+              <span className={styles.deliveryBadge}>Entrega em Curso</span>
+              <h1 className={styles.customerMain}>{activeOrder.customer_name}</h1>
+              <a href={`tel:${activeOrder.customer_phone}`} style={{ 
+                color: '#e11d48', 
+                fontWeight: 700, 
+                fontSize: '1.1rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}>
+                <Phone size={20} /> Ligar para Cliente
+              </a>
             </div>
 
-            <div className={styles.deliveryDetails}>
-              <div className={styles.detailGroup}>
-                <label>Cliente</label>
-                <div className={styles.customerRow}>
-                  <h3>{activeOrder.customer_name}</h3>
-                  <a href={`tel:${activeOrder.customer_phone}`} className={styles.phoneBtn}>
-                    <Phone size={20} /> Ligar
-                  </a>
-                </div>
+            <div className={styles.deliveryAddress}>
+              <div className={styles.addressIcon}>
+                <MapPin size={24} />
               </div>
-
-              <div className={styles.detailGroup}>
-                <button 
-                  className={styles.btnShowAddress}
-                  onClick={() => setShowAddress(!showAddress)}
-                >
-                  <MapPin size={18} />
-                  {showAddress ? 'Ocultar Endereço' : 'Ver Endereço Completo'}
-                </button>
-
-                <AnimatePresence>
-                  {showAddress && (
-                    <motion.div 
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className={styles.addressBox}
-                    >
-                      <p className={styles.activeAddress}>{activeOrder.address}</p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <button 
-                  onClick={() => openInMaps(activeOrder.address)}
-                  className={styles.btnNav}
-                >
-                  <Navigation size={20} /> Abrir no Google Maps
-                </button>
+              <div className={styles.addressDetails}>
+                <div className={styles.addressTitle}>Endereço de Entrega</div>
+                <div className={styles.addressLine}>{activeOrder.address}</div>
               </div>
+            </div>
 
-              <div className={styles.trackingStatus}>
-                <AlertCircle size={20} />
-                <span>Rastreamento GPS ativo para a cozinha</span>
-              </div>
+            <div className={styles.deliveryActions}>
+              <button 
+                onClick={() => openInMaps(activeOrder.address)}
+                className={styles.btnMaps}
+              >
+                <Navigation size={22} /> Navegar com Google Maps
+              </button>
 
               <button 
                 onClick={completeDelivery}
@@ -405,8 +388,22 @@ export default function DriverDashboard() {
                 disabled={completing}
               >
                 <CheckCircle2 size={24} /> 
-                {completing ? 'Finalizando...' : 'Pedido Entregue'}
+                {completing ? 'Finalizando...' : 'Confirmar Entrega Realizada'}
               </button>
+            </div>
+
+            <div style={{ 
+              marginTop: '2rem', 
+              textAlign: 'center', 
+              fontSize: '0.85rem', 
+              color: '#94a3b8',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
+            }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#10b981' }} />
+              Rastreamento GPS ativo para a Maria
             </div>
           </motion.div>
         )}
