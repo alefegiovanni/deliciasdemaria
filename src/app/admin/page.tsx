@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Package, Search, Clock, Map as MapIcon, ChevronRight, CheckCircle2, Truck, AlertCircle, LogOut, Utensils, Trash2, Plus, ChefHat, Edit, Users, UserX, MessageCircle, MapPin, Bell, Store, Link, Menu, X } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import styles from './admin.module.css';
 
@@ -42,6 +42,7 @@ export default function KitchenDashboard() {
   });
   const [estimatedTime, setEstimatedTime] = useState(40);
   const [search, setSearch] = useState('');
+  const [showNewOrderAlert, setShowNewOrderAlert] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'active' | 'all' | 'received' | 'preparing' | 'ready' | 'dispatched' | 'out_for_delivery' | 'delivered' | 'cancelled'>('active');
   const router = useRouter();
@@ -56,6 +57,10 @@ export default function KitchenDashboard() {
     notifiedOrdersRef.current.add(newOrder.id);
 
     console.log('[HANDLER] New order processed:', newOrder.id);
+
+    // Show visual alert (Audio is handled by GlobalNotificationSystem)
+    setShowNewOrderAlert(true);
+    setTimeout(() => setShowNewOrderAlert(false), 6000);
 
     // Update orders list
     setOrders(prev => {
@@ -191,6 +196,9 @@ export default function KitchenDashboard() {
           
           if (!isInitial && lastOrderRef.current && latestOrderDate > lastOrderRef.current) {
             console.log('New order detected via Polling:', latestOrderDate);
+            // We just need to trigger the alert here, sound is global
+            setShowNewOrderAlert(true);
+            setTimeout(() => setShowNewOrderAlert(false), 6000);
           }
 
           if (!lastOrderRef.current || latestOrderDate > lastOrderRef.current) {
@@ -532,6 +540,21 @@ export default function KitchenDashboard() {
 
         {view === 'orders' && (
           <>
+            <AnimatePresence>
+              {showNewOrderAlert && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -20, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -20, scale: 0.9 }}
+                  className={styles.newOrderAlert}
+                  onClick={() => setShowNewOrderAlert(false)}
+                >
+                  <AlertCircle size={24} />
+                  <span>MAIS UM PEDIDO RECEBIDO!</span>
+                  <AlertCircle size={24} />
+                </motion.div>
+              )}
+            </AnimatePresence>
             <section className={styles.statsGrid}>
               <div 
                 className={`${styles.statCard} ${statusFilter === 'active' ? styles.statCardActive : ''}`}

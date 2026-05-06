@@ -2,14 +2,32 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Package, X } from 'lucide-react';
 
 export default function GlobalNotificationSystem() {
-  const [showAlert, setShowAlert] = useState(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const notifiedOrdersRef = useRef<Set<string>>(new Set());
   const lastOrderTimestampRef = useRef<string>(new Date().toISOString());
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Sync admin status
+  useEffect(() => {
+    const checkAdmin = () => {
+      const role = localStorage.getItem('user_role');
+      setIsAdmin(role === 'admin');
+    };
+    
+    checkAdmin();
+    // Listen for storage changes (login/logout in other tabs or current tab)
+    window.addEventListener('storage', checkAdmin);
+    // Also check on a small interval as a fallback since navigation in the same tab 
+    // doesn't always trigger 'storage' for the same window
+    const interval = setInterval(checkAdmin, 2000);
+    
+    return () => {
+      window.removeEventListener('storage', checkAdmin);
+      clearInterval(interval);
+    };
+  }, []);
 
   // Initialize and resume AudioContext
   const initAudio = useCallback(() => {
@@ -55,14 +73,10 @@ export default function GlobalNotificationSystem() {
     if (notifiedOrdersRef.current.has(newOrder.id)) return;
     notifiedOrdersRef.current.add(newOrder.id);
 
-    console.log('[GlobalNotification] NEW ORDER:', newOrder.id);
+    console.log('[GlobalNotification] NEW ORDER SOUND:', newOrder.id);
     
-    // SOUND
+    // SOUND ONLY - No visual alert globally as requested
     playBlip();
-
-    // VISUAL ALERT
-    setShowAlert(true);
-    setTimeout(() => setShowAlert(false), 8000);
 
     if (newOrder.created_at > lastOrderTimestampRef.current) {
       lastOrderTimestampRef.current = newOrder.created_at;
@@ -70,22 +84,22 @@ export default function GlobalNotificationSystem() {
   }, [playBlip]);
 
   useEffect(() => {
-    // Only Maria (admin) needs to hear the blip globally
-    const role = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
-    if (role !== 'admin') return;
+    if (!isAdmin) return;
+
+    console.log('[GlobalNotification] Admin detected, starting listeners...');
 
     // Unlock AudioContext on interaction
     const unlockAudio = () => {
       initAudio();
-      window.removeEventListener('click', unlockAudio);
-      window.removeEventListener('touchstart', unlockAudio);
+      // We don't remove the listener here because we want to keep it ready 
+      // in case the browser suspends the context again
     };
     window.addEventListener('click', unlockAudio);
     window.addEventListener('touchstart', unlockAudio);
 
     // Strategy 1: Supabase Realtime
     const channel = supabase
-      .channel('global-order-notifications')
+      .channel('global-order-notifications-v2')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'orders' },
@@ -119,74 +133,7 @@ export default function GlobalNotificationSystem() {
       window.removeEventListener('click', unlockAudio);
       window.removeEventListener('touchstart', unlockAudio);
     };
-  }, [handleNewOrder, initAudio]);
+  }, [isAdmin, handleNewOrder, initAudio]);
 
-  return (
-    <AnimatePresence>
-      {showAlert && (
-        <motion.div
-          initial={{ opacity: 0, y: -100, x: '-50%' }}
-          animate={{ opacity: 1, y: 20, x: '-50%' }}
-          exit={{ opacity: 0, y: -100, x: '-50%' }}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: '50%',
-            zIndex: 2147483647,
-            width: 'calc(100% - 40px)',
-            maxWidth: '400px',
-            backgroundColor: '#ffffff',
-            borderRadius: '20px',
-            padding: '16px 20px',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.05)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px',
-            cursor: 'pointer',
-            borderLeft: '6px solid #d44e6d'
-          }}
-          onClick={() => setShowAlert(false)}
-        >
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '14px',
-            backgroundColor: '#fff1f2',
-            color: '#d44e6d',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
-            <Package size={24} />
-          </div>
-          
-          <div style={{ flex: 1 }}>
-            <h4 style={{ margin: 0, color: '#1a1a2e', fontSize: '1rem', fontWeight: 800 }}>
-              NOVO PEDIDO!
-            </h4>
-            <p style={{ margin: '2px 0 0', color: '#6b7280', fontSize: '0.875rem' }}>
-              Um novo pedido acaba de chegar na cozinha.
-            </p>
-          </div>
-
-          <button 
-            style={{ 
-              background: 'none', 
-              border: 'none', 
-              color: '#9ca3af',
-              padding: '4px',
-              cursor: 'pointer'
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowAlert(false);
-            }}
-          >
-            <X size={20} />
-          </button>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
+  return null; // Sound only component
 }
