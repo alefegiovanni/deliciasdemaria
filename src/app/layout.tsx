@@ -24,6 +24,8 @@ export const viewport = {
   viewportFit: 'cover',
 };
 
+import StoreClosedOverlay from "@/components/StoreClosedOverlay";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -34,7 +36,10 @@ export default function RootLayout({
       <head>
         <meta name="google" content="notranslate" />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <StoreClosedOverlay />
+      </body>
     </html>
   );
 }
