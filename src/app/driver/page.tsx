@@ -39,10 +39,17 @@ export default function DriverDashboard() {
           localStorage.setItem('delicias_driver', JSON.stringify(data));
           window.history.replaceState({}, document.title, '/driver');
         }
-      } 
-      // Se não houver token, não carregamos o driver do sessionStorage automaticamente
-      // para forçar a seleção do nome no Portal Geral da Equipe toda vez que o link for aberto.
-      
+      } else {
+        // Se não houver token, tentamos carregar a sessão salva para evitar re-seleção ao atualizar
+        const saved = localStorage.getItem('delicias_driver');
+        if (saved) {
+          try {
+            setCurrentDriver(JSON.parse(saved));
+          } catch (e) {
+            localStorage.removeItem('delicias_driver');
+          }
+        }
+      }
       fetchReadyOrders();
     };
 
