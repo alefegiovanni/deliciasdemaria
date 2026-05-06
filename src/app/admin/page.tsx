@@ -52,13 +52,23 @@ export default function KitchenDashboard() {
   const router = useRouter();
 
   // Defined early so the useEffect closure captures the correct reference
+  const initAudio = useCallback(() => {
+    if (!audioCtxRef.current) {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContextClass) {
+        audioCtxRef.current = new AudioContextClass();
+      }
+    }
+    if (audioCtxRef.current?.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
+  }, []);
+
   const playNotificationSound = useCallback(() => {
     try {
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      }
+      initAudio(); // Ensure it's initialized and resumed
       const audioCtx = audioCtxRef.current;
-      if (audioCtx.state === 'suspended') audioCtx.resume();
+      if (!audioCtx) return;
 
       const playBeep = (time: number, freq: number) => {
         const oscillator = audioCtx.createOscillator();
@@ -73,12 +83,14 @@ export default function KitchenDashboard() {
         oscillator.stop(time + 0.4);
       };
 
-      playBeep(audioCtx.currentTime, 880);
-      playBeep(audioCtx.currentTime + 0.45, 1046.50);
+      // Play immediately using the current time
+      const now = audioCtx.currentTime;
+      playBeep(now, 880);
+      playBeep(now + 0.15, 1046.50); // Made the gap shorter for snappier sound
     } catch (err) {
       console.error('Erro ao tocar som:', err);
     }
-  }, []);
+  }, [initAudio]);
 
   // Single handler for new orders — called by BOTH Realtime and fast polling
   // Deduplication guard prevents double sound/alert if both fire at the same time
@@ -108,6 +120,15 @@ export default function KitchenDashboard() {
   }, [playNotificationSound]);
 
   useEffect(() => {
+    // Unlock AudioContext on first interaction
+    const unlockAudio = () => {
+      initAudio();
+      window.removeEventListener('click', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+    };
+    window.addEventListener('click', unlockAudio);
+    window.addEventListener('touchstart', unlockAudio);
+
     const role = localStorage.getItem('user_role');
     if (role !== 'admin') {
       router.push('/login');
