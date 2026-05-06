@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Truck, MapPin, Phone, CheckCircle2, Navigation, AlertCircle, LogOut, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -109,53 +109,55 @@ export default function DriverDashboard() {
     }
   };
 
-  const fetchReadyOrders = async () => {
-    setIsFetching(true);
-    const driverId = currentDriver?.id;
+  const currentDriverRef = useRef(currentDriver);
+  useEffect(() => {
+    currentDriverRef.current = currentDriver;
+  }, [currentDriver]);
 
+  const fetchReadyOrders = async () => {
     try {
-      const { data: available, error: errorAvailable } = await supabase
+      setIsFetching(true);
+      const driver = currentDriverRef.current;
+
+      // Fetch ALL dispatched orders (Available pool)
+      const { data: available, error: errAvail } = await supabase
         .from('orders')
         .select('*')
         .eq('status', 'dispatched')
         .is('driver_id', null)
         .order('created_at', { ascending: false });
 
-      if (errorAvailable) throw errorAvailable;
-      setOrders(available || []);
+      if (!errAvail && available) {
+        setOrders(available);
+      }
 
-      if (driverId) {
-        const { data: myActive, error: errorActive } = await supabase
+      // Fetch driver's active order
+      if (driver) {
+        const { data: myActive } = await supabase
           .from('orders')
           .select('*')
           .eq('status', 'out_for_delivery')
-          .eq('driver_id', driverId)
+          .eq('driver_id', driver.id)
           .maybeSingle();
 
-        if (errorActive) throw errorActive;
-        
         if (myActive) {
           setActiveOrder(myActive);
           setIsTracking(true);
-          if (!watchId) startGpsTracking(myActive.id);
+          // startGpsTracking is handled separately or safely
         } else {
           setActiveOrder(null);
           setIsTracking(false);
-          if (watchId) {
-            navigator.geolocation.clearWatch(watchId);
-            setWatchId(null);
-          }
         }
       }
     } catch (err) {
-      console.error('[DriverPage] Error fetching orders:', err);
+      console.error('[fetchReadyOrders] Error:', err);
     } finally {
       setIsFetching(false);
     }
   };
 
   const startGpsTracking = (orderId: string) => {
-    if ("geolocation" in navigator) {
+    if ("geolocation" in navigator && !watchId) {
       const id = navigator.geolocation.watchPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
@@ -171,6 +173,15 @@ export default function DriverDashboard() {
       setWatchId(id);
     }
   };
+
+  useEffect(() => {
+    if (activeOrder && isTracking) {
+      startGpsTracking(activeOrder.id);
+    } else if (!activeOrder && watchId) {
+      navigator.geolocation.clearWatch(watchId);
+      setWatchId(null);
+    }
+  }, [activeOrder, isTracking]);
 
   const acceptOrder = async (orderId: string) => {
     if (!currentDriver) return;
