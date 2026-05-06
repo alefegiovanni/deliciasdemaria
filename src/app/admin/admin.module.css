@@ -1622,9 +1622,9 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  max-height: 400px;
+  max-height: 50vh;
   overflow-y: auto;
-  padding-right: 4px;
+  padding: 0.5rem 0.25rem;
 }
 
 .driverCard {
@@ -1643,7 +1643,7 @@
 
 .driverCard:hover {
   border-color: var(--primary);
-  background: var(--secondary);
+  background: #fff5f7;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(212, 78, 109, 0.1);
 }
@@ -1653,31 +1653,39 @@
 }
 
 .driverAvatar {
-  width: 44px;
-  height: 44px;
+  width: 50px;
+  height: 50px;
   background: linear-gradient(135deg, var(--primary), #e11d48);
   color: white;
-  border-radius: 12px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   flex-shrink: 0;
-  box-shadow: 0 4px 8px rgba(212, 78, 109, 0.2);
+  box-shadow: 0 4px 10px rgba(212, 78, 109, 0.25);
 }
 
 .driverInfo {
   flex: 1;
   display: flex;
   flex-direction: column;
+  gap: 0.2rem;
+}
+
+.driverNameRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .driverName {
-  font-weight: 700;
+  font-weight: 800;
   color: var(--text-main);
-  font-size: 1rem;
-  line-height: 1.2;
+  font-size: 1.05rem;
+  line-height: 1.1;
 }
 
 .driverPhone {

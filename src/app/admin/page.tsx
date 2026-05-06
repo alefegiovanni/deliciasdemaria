@@ -1222,9 +1222,6 @@ export default function KitchenDashboard() {
                   <X size={24} />
                 </button>
               </div>
-              <p style={{ marginBottom: '1.5rem', color: '#64748b', fontSize: '0.95rem' }}>
-                Escolha o motoboy que realizará esta entrega:
-              </p>
               
               <div className={styles.dispatchGrid}>
                 {drivers.filter(d => d.active).map(driver => {
@@ -1247,13 +1244,13 @@ export default function KitchenDashboard() {
                         {initials}
                       </div>
                       <div className={styles.driverInfo}>
-                        <div className={styles.driverName}>{driver.name}</div>
-                        <div className={styles.driverPhone}>{driver.phone}</div>
-                        <div className={styles.driverStatus}>
+                        <div className={styles.driverNameRow}>
+                          <span className={styles.driverName}>{driver.name}</span>
                           <span className={`${styles.statusBadge} ${activeCount > 0 ? styles.statusOcupado : styles.statusLivre}`}>
                             {activeCount === 0 ? 'Livre' : `${activeCount} em rota`}
                           </span>
                         </div>
+                        <div className={styles.driverPhone}>{driver.phone}</div>
                       </div>
                       <ChevronRight size={20} color="#cbd5e1" />
                     </button>
