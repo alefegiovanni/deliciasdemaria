@@ -152,15 +152,17 @@ export default function OrderTracking() {
                   const Icon = status.icon;
                   const currentIndex = statuses.findIndex(s => s.id === order.status);
                   
-                  // Especial logic for 'dispatched': treat it as completed (green) 
-                  // but don't highlight the next step yet.
+                  // Rule: 'Saiu para Entrega' (index 4) ONLY becomes pink if status is 'out_for_delivery' AND driver is assigned
+                  const isSaiuParaEntrega = status.id === 'out_for_delivery';
+                  const isReadyForPink = isSaiuParaEntrega ? (order.status === 'out_for_delivery' && !!order.driver_id) : (index === currentIndex);
+
                   const isPast = order.status === 'dispatched' 
                     ? index <= currentIndex 
                     : index < currentIndex;
                     
                   const isCurrent = order.status === 'dispatched'
                     ? false
-                    : index === currentIndex;
+                    : isReadyForPink;
 
                   const isDelivered = status.id === 'delivered' && (isCurrent || isPast);
 
