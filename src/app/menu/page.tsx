@@ -308,9 +308,7 @@ export default function MenuPage() {
         notes: obs,
         total,
         status: 'received',
-        estimated_time: estimatedTime,
-        delivery_fee: selectedFee,
-        distance_km: distance
+        estimated_time: estimatedTime
       };
 
       const newOrder = await createOrder(orderData);
