@@ -269,7 +269,7 @@ export default function DriverDashboard() {
           <h1>Painel do Motoboy</h1>
         </div>
         <button className={styles.logoutBtn} onClick={() => { 
-          sessionStorage.removeItem('delicias_driver'); 
+          localStorage.removeItem('delicias_driver'); 
           setCurrentDriver(null); 
         }}>
           <LogOut size={20} /> Sair
