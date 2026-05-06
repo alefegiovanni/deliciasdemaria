@@ -317,10 +317,15 @@ export default function MenuPage() {
     setIsSearching(true);
     try {
       const cleanPhone = recoveryPhone.replace(/\D/g, '');
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayISO = today.toISOString();
+
       const { data, error } = await supabase
         .from('orders')
         .select('*')
         .or(`customer_phone.eq.${recoveryPhone},customer_phone.ilike.%${cleanPhone}%`)
+        .gte('created_at', todayISO)
         .neq('status', 'cancelled')
         .order('created_at', { ascending: false })
         .limit(3);
