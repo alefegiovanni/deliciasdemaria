@@ -107,59 +107,18 @@ export default function KitchenDashboard() {
         console.log('[REALTIME] Status:', status);
       });
 
-    // Strategy 2: Ultra-fast lightweight polling (1.5s) — ONLY fetches orders 
-    // newer than the last known timestamp. Extremely cheap query.
-    // This uses recursive setTimeout to prevent overlapping requests on slow networks.
     let isMounted = true;
-    let fastPollTimeout: NodeJS.Timeout;
-    let fullPollTimeout: NodeJS.Timeout;
 
-    const pollFast = async () => {
-      if (!isMounted) return;
-      
-      if (lastOrderRef.current) {
-        try {
-          const { data } = await supabase
-            .from('orders')
-            .select('*')
-            .gt('created_at', lastOrderRef.current)
-            .order('created_at', { ascending: true })
-            .limit(10);
-
-          if (data && data.length > 0) {
-            console.log('[FAST-POLL] Found', data.length, 'new order(s)');
-            data.forEach(newOrder => handleNewOrder(newOrder));
-          }
-        } catch (err) {
-          // Silent fail — next tick will try again
-        }
-      }
-      
-      if (isMounted) {
-        fastPollTimeout = setTimeout(pollFast, 1500);
-      }
-    };
-
-    // Strategy 3: Full refresh every 30s as final safety net
-    const pollFull = async () => {
-      if (!isMounted) return;
-      
-      await fetchOrders();
-      
-      if (isMounted) {
-        fullPollTimeout = setTimeout(pollFull, 30000);
-      }
-    };
-
-    // Start polling delays
-    fastPollTimeout = setTimeout(pollFast, 1500);
-    fullPollTimeout = setTimeout(pollFull, 30000);
+    // Simplified Polling: Fetch last 50 orders every 5 seconds
+    // This completely eliminates any bugs related to lastOrderRef, clock skew, or network queueing
+    const pollInterval = setInterval(() => {
+      if (isMounted) fetchOrders(false);
+    }, 5000);
 
     return () => {
       isMounted = false;
       supabase.removeChannel(channel);
-      clearTimeout(fastPollTimeout);
-      clearTimeout(fullPollTimeout);
+      clearInterval(pollInterval);
     };
   }, [handleNewOrder]);
 
@@ -213,30 +172,27 @@ export default function KitchenDashboard() {
         .from('orders')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(50); // Optimization: only fetch last 50 for performance
+        .limit(50);
       
       if (error) {
         setApiDebug(`API Error: ${error.message}`);
       } else if (data) {
         setApiDebug(`API Success! Rows returned: ${data.length}`);
-        setOrders(data);
-        extractClients(data);
-
-        if (data.length > 0) {
+        
+        // Check for new orders to trigger alert
+        if (!isInitial && data.length > 0) {
           const latestOrderDate = data[0].created_at;
-          
-          if (!isInitial && lastOrderRef.current && latestOrderDate > lastOrderRef.current) {
-            console.log('New order detected via Polling:', latestOrderDate);
+          if (lastOrderRef.current && latestOrderDate > lastOrderRef.current) {
             setShowNewOrderAlert(true);
             setTimeout(() => setShowNewOrderAlert(false), 6000);
           }
-
-          if (!lastOrderRef.current || latestOrderDate > lastOrderRef.current) {
-            lastOrderRef.current = latestOrderDate;
-          }
-        } else if (isInitial) {
-          lastOrderRef.current = new Date(Date.now() - 120000).toISOString();
+          lastOrderRef.current = latestOrderDate;
+        } else if (isInitial && data.length > 0) {
+          lastOrderRef.current = data[0].created_at;
         }
+
+        setOrders(data);
+        extractClients(data);
       }
     } catch (err: any) {
       setApiDebug(`Try/Catch Error: ${err.message}`);
