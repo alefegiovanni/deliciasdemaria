@@ -283,7 +283,7 @@
 .overlayWrapper {
   position: fixed;
   inset: 0;
-  z-index: 2000;
+  z-index: 6000;
   display: flex;
   justify-content: flex-end;
 }
@@ -308,7 +308,7 @@
   flex-direction: column;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
   overflow: hidden; /* Senior: Critical to show rounded corners on children */
-  z-index: 3001;
+  z-index: 6001;
 }
 
 @media (max-width: 480px) {
@@ -601,7 +601,7 @@
 .modalOverlay {
   position: fixed;
   inset: 0;
-  z-index: 3000;
+  z-index: 5000;
   background: rgba(0,0,0,0.6);
   backdrop-filter: blur(10px);
   display: flex;

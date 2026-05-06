@@ -628,7 +628,7 @@ export default function MenuPage() {
                    <button 
                      className={styles.checkoutBtn}
                      disabled={!street || !number || loading || !isOpen}
-                     onClick={() => setStep('checkout')}
+                     onClick={() => { setStep('checkout'); setIsCartOpen(false); }}
                    >
                      {!isOpen ? 'Loja Fechada' : (loading ? 'Processando...' : 'CONTINUAR')}
                    </button>
