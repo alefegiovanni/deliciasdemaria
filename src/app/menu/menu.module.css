@@ -571,7 +571,8 @@
   justify-content: center;
   gap: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  touch-action: manipulation;
+  pointer-events: auto;
 }
 
 .checkoutBtn:hover:not(:disabled) {
@@ -581,7 +582,7 @@
 }
 
 .checkoutBtn:active:not(:disabled) {
-  transform: translateY(-1px) scale(0.98);
+  opacity: 0.9;
 }
 
 .checkoutBtn:disabled {
@@ -725,7 +726,8 @@
   justify-content: center;
   gap: 0.5rem;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  touch-action: manipulation;
+  pointer-events: auto;
 }
 
 .submitBtn:hover:not(:disabled) {
@@ -735,7 +737,7 @@
 }
 
 .submitBtn:active:not(:disabled) {
-  transform: translateY(-1px) scale(0.98);
+  opacity: 0.9;
 }
 
 .submitBtn:disabled {

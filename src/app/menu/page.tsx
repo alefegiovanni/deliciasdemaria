@@ -424,21 +424,21 @@ export default function MenuPage() {
     <main className={styles.main}>
       <header className={styles.header}>
         <div className={styles.headerContainer}>
-          <button onClick={() => router.push('/')} className={styles.backBtn}>
+          <motion.button onClick={() => router.push('/')} className={styles.backBtn}>
             <ArrowLeft size={24} />
-          </button>
+          </motion.button>
           <h1 className={styles.logo}>Cardápio</h1>
 
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button 
+            <motion.button 
               onClick={() => setIsRecoveryOpen(true)}
               className={styles.historyButton}
               title="Acompanhar meu pedido"
             >
               <Search size={22} />
-            </button>
+            </motion.button>
             
-            <button 
+            <motion.button 
               onClick={() => setIsCartOpen(true)}
               className={`${styles.cartButton} ${showToast ? styles.pulse : ''}`}
             >
@@ -448,7 +448,7 @@ export default function MenuPage() {
                   {cart.reduce((a, b) => a + b.quantity, 0)}
                 </span>
               )}
-            </button>
+            </motion.button>
           </div>
         </div>
       </header>
@@ -472,14 +472,14 @@ export default function MenuPage() {
       <nav className={styles.categoryNav}>
         <div className={styles.catContainer}>
           {['Pratos', 'Bebidas', 'Sobremesas'].map(cat => (
-            <button 
+            <motion.button 
               key={cat} 
               onClick={() => setSelectedCategory(cat)}
               className={`${selectedCategory === cat ? styles.catBtnActive : styles.catBtn} notranslate`}
               translate="no"
             >
               {cat}
-            </button>
+            </motion.button>
           ))}
         </div>
       </nav>
@@ -513,13 +513,13 @@ export default function MenuPage() {
                   <span className={styles.price}>
                     R$ {product.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
-                  <button 
+                  <motion.button 
                     onClick={() => addToCart(product)}
                     className={styles.addBtn}
                   >
                     <Plus size={18} />
                     <span>Adicionar</span>
-                  </button>
+                  </motion.button>
                 </div>
               </div>
             </motion.div>
@@ -545,7 +545,7 @@ export default function MenuPage() {
              >
                <div className={styles.drawerHeader}>
                  <h2>Seu Carrinho</h2>
-                 <button onClick={() => setIsCartOpen(false)}><X size={24} /></button>
+                 <motion.button onClick={() => setIsCartOpen(false)}><X size={24} /></motion.button>
                </div>
 
                <div className={styles.drawerBody}>
@@ -564,12 +564,12 @@ export default function MenuPage() {
                          <h4>{item.product.name}</h4>
                          <p className={styles.itemPrice}>R$ {item.product.price.toFixed(2)}</p>
                          <div className={styles.qtyControls}>
-                           <button onClick={() => updateQuantity(item.product.id, -1)}><Minus size={16} /></button>
+                           <motion.button onClick={() => updateQuantity(item.product.id, -1)}><Minus size={16} /></motion.button>
                            <span>{item.quantity}</span>
-                           <button onClick={() => updateQuantity(item.product.id, 1)}><Plus size={16} /></button>
+                           <motion.button onClick={() => updateQuantity(item.product.id, 1)}><Plus size={16} /></motion.button>
                          </div>
                        </div>
-                       <button onClick={() => removeFromCart(item.product.id)} className={styles.removeBtn}><X size={20} /></button>
+                       <motion.button onClick={() => removeFromCart(item.product.id)} className={styles.removeBtn}><X size={20} /></motion.button>
                      </div>
                    ))
                  )}
@@ -625,13 +625,15 @@ export default function MenuPage() {
                      <span>R$ {total.toFixed(2)}</span>
                    </div>
 
-                   <button 
+                   <motion.button 
+                     id="cart-continue-button"
+                     whileTap={{ scale: 0.96 }}
                      className={styles.checkoutBtn}
                      disabled={!street || !number || loading || !isOpen}
                      onClick={() => { setStep('checkout'); setIsCartOpen(false); }}
                    >
                      {!isOpen ? 'Loja Fechada' : (loading ? 'Processando...' : 'CONTINUAR')}
-                   </button>
+                   </motion.button>
                  </div>
                )}
              </motion.div>
@@ -676,15 +678,16 @@ export default function MenuPage() {
                     <textarea value={obs} onChange={e => setObs(e.target.value)} placeholder="Ex: Sem cebola, campainha estragada..." />
                   </div>
                   <div className={styles.formActions}>
-                    <button 
+                    <motion.button 
                       type="submit" 
                       id="confirm-order-button"
+                      whileTap={{ scale: 0.96 }}
                       className={styles.submitBtn} 
                       disabled={loading}
                     >
                       {loading ? 'Enviando...' : 'Confirmar e Enviar'}
-                    </button>
-                    <button type="button" onClick={() => setStep('menu')} className={styles.modalBackBtn}>Voltar</button>
+                    </motion.button>
+                    <motion.button type="button" onClick={() => setStep('menu')} className={styles.modalBackBtn}>Voltar</motion.button>
                   </div>
                 </form>
               </div>
@@ -708,9 +711,9 @@ export default function MenuPage() {
               <h2>Pedido Confirmado!</h2>
               <p>Seu pedido <strong>#{orderId.slice(-4).toUpperCase()}</strong> já está sendo preparado pela Maria.</p>
               <div className={styles.successActions}>
-                <button onClick={() => router.push(`/order/${orderId}`)} className={styles.submitBtn}>
+                <motion.button onClick={() => router.push(`/order/${orderId}`)} className={styles.submitBtn}>
                   Acompanhar Entrega
-                </button>
+                </motion.button>
               </div>
             </motion.div>
           </div>
@@ -729,9 +732,9 @@ export default function MenuPage() {
               <div className={styles.modalContent}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                   <h2 className={styles.modalTitle} style={{ margin: 0 }}>Meus Pedidos</h2>
-                  <button onClick={() => setIsRecoveryOpen(false)} style={{ background: 'none', border: 'none', color: '#666' }}>
+                  <motion.button onClick={() => setIsRecoveryOpen(false)} style={{ background: 'none', border: 'none', color: '#666' }}>
                     <X size={24} />
-                  </button>
+                  </motion.button>
                 </div>
                 
                 <p style={{ color: '#666', marginBottom: '1.5rem', textAlign: 'center' }}>
@@ -746,14 +749,14 @@ export default function MenuPage() {
                     onChange={e => setRecoveryPhone(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && searchOrders()}
                   />
-                  <button 
+                  <motion.button 
                     onClick={searchOrders} 
                     className={styles.submitBtn} 
                     style={{ marginTop: '1rem' }}
                     disabled={isSearching}
                   >
                     {isSearching ? 'Buscando...' : 'Buscar Pedidos'}
-                  </button>
+                  </motion.button>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -778,13 +781,13 @@ export default function MenuPage() {
                           Status: {order.status === 'received' ? 'Recebido' : order.status === 'preparing' ? 'Preparando' : order.status === 'ready' ? 'Pronto' : order.status === 'dispatched' ? 'Ag. Motoboy' : order.status === 'out_for_delivery' ? 'Em Entrega' : order.status === 'delivered' ? 'Entregue' : 'Cancelado'}
                         </div>
                       </div>
-                      <button 
+                      <motion.button 
                         onClick={() => router.push(`/order/${order.id}?from=orders`)}
                         className={styles.addBtn}
                         style={{ width: 'auto', padding: '0.5rem 1rem', borderRadius: '10px' }}
                       >
                         <ExternalLink size={16} /> Ver
-                      </button>
+                      </motion.button>
                     </div>
                   ))}
                   {!isSearching && foundOrders.length === 0 && recoveryPhone && (
