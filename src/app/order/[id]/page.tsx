@@ -151,8 +151,17 @@ export default function OrderTracking() {
                 {statuses.map((status, index) => {
                   const Icon = status.icon;
                   const currentIndex = statuses.findIndex(s => s.id === order.status);
-                  const isPast = index < currentIndex;
-                  const isCurrent = index === currentIndex;
+                  
+                  // Especial logic for 'dispatched': treat it as completed (green) 
+                  // but don't highlight the next step yet.
+                  const isPast = order.status === 'dispatched' 
+                    ? index <= currentIndex 
+                    : index < currentIndex;
+                    
+                  const isCurrent = order.status === 'dispatched'
+                    ? false
+                    : index === currentIndex;
+
                   const isDelivered = status.id === 'delivered' && (isCurrent || isPast);
 
                   return (
