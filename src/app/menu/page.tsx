@@ -390,29 +390,6 @@ export default function MenuPage() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {activeOrderId && step === 'menu' && (
-          <motion.div 
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            className={styles.recoveryBadge}
-            onClick={() => router.push(`/order/${activeOrderId}`)}
-          >
-            <div className={styles.recoveryInfo}>
-              <div className={styles.pulseContainerSmall}>
-                <div className={styles.pulseDotSmall} />
-              </div>
-              <div>
-                <strong>Pedido em andamento!</strong>
-                <p>Clique para acompanhar a entrega</p>
-              </div>
-            </div>
-            <ChevronRight size={20} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
         {showToast && (
           <motion.div 
             initial={{ opacity: 0, y: -50 }}
