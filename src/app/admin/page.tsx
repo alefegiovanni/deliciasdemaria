@@ -45,6 +45,7 @@ export default function KitchenDashboard() {
   const [showNewOrderAlert, setShowNewOrderAlert] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'active' | 'all' | 'received' | 'preparing' | 'ready' | 'dispatched' | 'out_for_delivery' | 'delivered' | 'cancelled'>('active');
+  const [apiDebug, setApiDebug] = useState<string>('Initializing...');
   const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
   const [orderToDispatch, setOrderToDispatch] = useState<string | null>(null);
   const router = useRouter();
@@ -207,13 +208,17 @@ export default function KitchenDashboard() {
 
   const fetchOrders = async (isInitial = false) => {
     try {
+      setApiDebug('Fetching...');
       const { data, error } = await supabase
         .from('orders')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(50); // Optimization: only fetch last 50 for performance
       
-      if (!error && data) {
+      if (error) {
+        setApiDebug(`API Error: ${error.message}`);
+      } else if (data) {
+        setApiDebug(`API Success! Rows returned: ${data.length}`);
         setOrders(data);
         extractClients(data);
 
@@ -222,7 +227,6 @@ export default function KitchenDashboard() {
           
           if (!isInitial && lastOrderRef.current && latestOrderDate > lastOrderRef.current) {
             console.log('New order detected via Polling:', latestOrderDate);
-            // We just need to trigger the alert here, sound is global
             setShowNewOrderAlert(true);
             setTimeout(() => setShowNewOrderAlert(false), 6000);
           }
@@ -231,12 +235,11 @@ export default function KitchenDashboard() {
             lastOrderRef.current = latestOrderDate;
           }
         } else if (isInitial) {
-          // If database is completely empty on initial load, set to 2 minutes ago
-          // to account for any clock skew between client and server
           lastOrderRef.current = new Date(Date.now() - 120000).toISOString();
         }
       }
-    } catch (err) {
+    } catch (err: any) {
+      setApiDebug(`Try/Catch Error: ${err.message}`);
       console.error('Failed to fetch orders:', err);
     }
   };
@@ -449,11 +452,22 @@ export default function KitchenDashboard() {
       default: return status;
     }
   };
-
-  const categories = Array.from(new Set(productsList.map(p => p.category)));
+const categories = Array.from(new Set(productsList.map(p => p.category)));
 
   return (
     <main className={styles.main}>
+      {/* === DEBUG PANEL FOR RENATO === */}
+      <div style={{ position: 'fixed', bottom: '10px', right: '10px', zIndex: 9999, background: '#ffebee', border: '2px solid #f44336', padding: '15px', borderRadius: '8px', fontSize: '14px', color: '#b71c1c', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', maxWidth: '400px' }}>
+        <strong style={{fontSize: '16px'}}>PAINEL DE DIAGNÓSTICO (DEBUG):</strong><br/><br/>
+        <strong>API Status:</strong> {apiDebug}<br/>
+        <strong>Qtd. Pedidos na Memória:</strong> {orders.length}<br/>
+        <strong>Filtro Atual:</strong> {statusFilter}<br/>
+        <strong>Pedidos Passando no Filtro:</strong> {orders.filter(o => {
+          const matchesSearch = o.customer_name?.toLowerCase().includes(search.toLowerCase()) || o.id.includes(search);
+          const matchesStatus = statusFilter === 'all' || o.status === statusFilter || (statusFilter === 'active' && ['received', 'preparing', 'ready', 'dispatched'].includes(o.status)) || (statusFilter === 'out_for_delivery' && ['out_for_delivery', 'dispatched'].includes(o.status));
+          return matchesSearch && matchesStatus;
+        }).length}
+      </div>
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <div className={styles.sidebarBrandGroup}>
