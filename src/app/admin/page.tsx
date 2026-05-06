@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Package, Search, Clock, Map as MapIcon, ChevronRight, CheckCircle2, Truck, AlertCircle, LogOut, Utensils, Trash2, Plus, ChefHat, Edit, Users, UserX, MessageCircle, MapPin, Bell, Store, Link, Menu, X } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -46,8 +46,39 @@ export default function KitchenDashboard() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'active' | 'all' | 'received' | 'preparing' | 'ready' | 'out_for_delivery' | 'delivered' | 'cancelled'>('active');
   const lastOrderRef = useRef<string | null>(null);
+  // Create AudioContext once — avoids autoplay-policy blocks after first user click
+  const audioCtxRef = useRef<any>(null);
 
   const router = useRouter();
+
+  // Defined early so the useEffect closure captures the correct reference
+  const playNotificationSound = useCallback(() => {
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const audioCtx = audioCtxRef.current;
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+
+      const playBeep = (time: number, freq: number) => {
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(freq, time);
+        gainNode.gain.setValueAtTime(0.3, time);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.4);
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start(time);
+        oscillator.stop(time + 0.4);
+      };
+
+      playBeep(audioCtx.currentTime, 880);
+      playBeep(audioCtx.currentTime + 0.45, 1046.50);
+    } catch (err) {
+      console.error('Erro ao tocar som:', err);
+    }
+  }, []);
 
   useEffect(() => {
     const role = localStorage.getItem('user_role');
@@ -62,49 +93,51 @@ export default function KitchenDashboard() {
     fetchClients();
     fetchDrivers();
 
-    // High-performance real-time subscription
+    // True realtime: INSERT fires immediately via WebSocket
     const channel = supabase
-      .channel('kitchen-realtime')
+      .channel('kitchen-realtime-v2')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
-        console.log('New order received via Realtime:', payload.new);
         const newOrder = payload.new;
-        
+        console.log('[REALTIME] New order INSERT received:', newOrder.id);
+
+        // ✅ Sound and alert fire SYNCHRONOUSLY here — NOT inside setState
+        playNotificationSound();
+        setShowNewOrderAlert(true);
+        setTimeout(() => setShowNewOrderAlert(false), 6000);
+
+        // Then update the orders list (deduplication guard)
         setOrders(prev => {
-          // Prevent duplicates if polling and realtime overlap
           if (prev.some(o => o.id === newOrder.id)) return prev;
-          
-          // Trigger sound and alert immediately
-          playNotificationSound();
-          setShowNewOrderAlert(true);
-          setTimeout(() => setShowNewOrderAlert(false), 6000);
-          
           return [newOrder, ...prev];
         });
-        
-        // Update ref to avoid double-firing in polling
+
         if (!lastOrderRef.current || newOrder.created_at > lastOrderRef.current) {
           lastOrderRef.current = newOrder.created_at;
         }
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, (payload) => {
-        setOrders(prev => prev.map(o => o.id === payload.new.id ? payload.new : o));
+        console.log('[REALTIME] Order UPDATE received:', payload.new.id);
+        setOrders(prev => prev.map(o => o.id === payload.new.id ? { ...o, ...payload.new } : o));
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => fetchProducts())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => fetchSettings())
       .subscribe((status) => {
-        console.log('Supabase Realtime Status:', status);
+        console.log('[REALTIME] Channel status:', status);
+        // If connection drops, do a single recovery fetch
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn('[REALTIME] Connection issue, doing recovery fetch');
+          fetchOrders();
+        }
       });
 
-    // Aggressive polling fallback (2 seconds) as requested for critical operations
-    const pollInterval = setInterval(() => {
-      fetchOrders();
-    }, 2000);
+    // Slower safety-net polling only (30s) — realtime handles the fast path
+    const pollInterval = setInterval(() => fetchOrders(), 30000);
 
     return () => {
       supabase.removeChannel(channel);
       clearInterval(pollInterval);
     };
-  }, []);
+  }, [playNotificationSound]);
 
   const fetchProducts = async () => {
     const { data } = await supabase.from('products').select('*').order('category');
@@ -348,41 +381,8 @@ export default function KitchenDashboard() {
     await supabase.from('settings').update({ is_open: newStatus }).eq('id', 'delicias_maria');
   };
 
-  // Create context once to avoid autoplay policy issues after first interaction
-  const audioCtxRef = useRef<any>(null);
 
-  const playNotificationSound = () => {
-    try {
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      }
-      const audioCtx = audioCtxRef.current;
-      
-      // Attempt to resume the audio context if it's suspended (due to browser autoplay policies)
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-      
-      const playBeep = (time: number, freq: number) => {
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(freq, time);
-        gainNode.gain.setValueAtTime(0.1, time);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        oscillator.start(time);
-        oscillator.stop(time + 0.3);
-      };
 
-      // Double beep
-      playBeep(audioCtx.currentTime, 880);
-      playBeep(audioCtx.currentTime + 0.4, 1046.50); // C6
-    } catch (err) {
-      console.error('Erro ao tocar som:', err);
-    }
-  };
 
   const updatePrepTime = async (newTime: number) => {
     setEstimatedTime(newTime);
