@@ -42,58 +42,13 @@ export default function KitchenDashboard() {
   });
   const [estimatedTime, setEstimatedTime] = useState(40);
   const [search, setSearch] = useState('');
-  const [showNewOrderAlert, setShowNewOrderAlert] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'active' | 'all' | 'received' | 'preparing' | 'ready' | 'dispatched' | 'out_for_delivery' | 'delivered' | 'cancelled'>('active');
-  const lastOrderRef = useRef<string | null>(null);
-  // Create AudioContext once — avoids autoplay-policy blocks after first user click
-  const audioCtxRef = useRef<any>(null);
-
   const router = useRouter();
-
-  // Defined early so the useEffect closure captures the correct reference
-  const initAudio = useCallback(() => {
-    if (!audioCtxRef.current) {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-      if (AudioContextClass) {
-        audioCtxRef.current = new AudioContextClass();
-      }
-    }
-    if (audioCtxRef.current?.state === 'suspended') {
-      audioCtxRef.current.resume();
-    }
-  }, []);
-
-  const playNotificationSound = useCallback(() => {
-    try {
-      initAudio(); // Ensure it's initialized and resumed
-      const audioCtx = audioCtxRef.current;
-      if (!audioCtx) return;
-
-      const playBeep = (time: number, freq: number) => {
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(freq, time);
-        gainNode.gain.setValueAtTime(0.3, time);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.4);
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        oscillator.start(time);
-        oscillator.stop(time + 0.4);
-      };
-
-      // Play immediately using the current time
-      const now = audioCtx.currentTime;
-      playBeep(now, 880);
-      playBeep(now + 0.15, 1046.50); // Made the gap shorter for snappier sound
-    } catch (err) {
-      console.error('Erro ao tocar som:', err);
-    }
-  }, [initAudio]);
+  const lastOrderRef = useRef<string | null>(null);
 
   // Single handler for new orders — called by BOTH Realtime and fast polling
-  // Deduplication guard prevents double sound/alert if both fire at the same time
+  // Deduplication guard prevents double alert if both fire at the same time
   const notifiedOrdersRef = useRef<Set<string>>(new Set());
   const handleNewOrder = useCallback((newOrder: any) => {
     // Already handled this order — skip
@@ -101,11 +56,6 @@ export default function KitchenDashboard() {
     notifiedOrdersRef.current.add(newOrder.id);
 
     console.log('[HANDLER] New order processed:', newOrder.id);
-
-    // Sound and alert fire SYNCHRONOUSLY — guaranteed instant
-    playNotificationSound();
-    setShowNewOrderAlert(true);
-    setTimeout(() => setShowNewOrderAlert(false), 6000);
 
     // Update orders list
     setOrders(prev => {
@@ -117,18 +67,9 @@ export default function KitchenDashboard() {
     if (!lastOrderRef.current || newOrder.created_at > lastOrderRef.current) {
       lastOrderRef.current = newOrder.created_at;
     }
-  }, [playNotificationSound]);
+  }, []);
 
   useEffect(() => {
-    // Unlock AudioContext on first interaction
-    const unlockAudio = () => {
-      initAudio();
-      window.removeEventListener('click', unlockAudio);
-      window.removeEventListener('touchstart', unlockAudio);
-    };
-    window.addEventListener('click', unlockAudio);
-    window.addEventListener('touchstart', unlockAudio);
-
     const role = localStorage.getItem('user_role');
     if (role !== 'admin') {
       router.push('/login');
@@ -250,9 +191,6 @@ export default function KitchenDashboard() {
           
           if (!isInitial && lastOrderRef.current && latestOrderDate > lastOrderRef.current) {
             console.log('New order detected via Polling:', latestOrderDate);
-            playNotificationSound();
-            setShowNewOrderAlert(true);
-            setTimeout(() => setShowNewOrderAlert(false), 6000);
           }
 
           if (!lastOrderRef.current || latestOrderDate > lastOrderRef.current) {
@@ -562,19 +500,6 @@ export default function KitchenDashboard() {
           
           <div className={styles.headerActions}>
             <button 
-              className={styles.btnSoundTest}
-              onClick={() => {
-                playNotificationSound();
-                const btn = document.activeElement as HTMLElement;
-                btn.style.transform = 'scale(1.2)';
-                setTimeout(() => btn.style.transform = '', 200);
-              }}
-              title="Testar som de notificação"
-            >
-              <Bell size={18} />
-            </button>
-
-            <button 
               className={`${styles.storeToggle} ${isOpen ? styles.storeOpen : styles.storeClosed}`}
               onClick={toggleStoreStatus}
             >
@@ -607,17 +532,6 @@ export default function KitchenDashboard() {
 
         {view === 'orders' && (
           <>
-            {showNewOrderAlert && (
-              <motion.div 
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={styles.newOrderAlert}
-              >
-                <AlertCircle size={24} />
-                <span>MAIS UM PEDIDO RECEBIDO!</span>
-                <AlertCircle size={24} />
-              </motion.div>
-            )}
             <section className={styles.statsGrid}>
               <div 
                 className={`${styles.statCard} ${statusFilter === 'active' ? styles.statCardActive : ''}`}

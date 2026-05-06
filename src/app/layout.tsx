@@ -25,6 +25,7 @@ export const viewport = {
 };
 
 import StoreClosedOverlay from "@/components/StoreClosedOverlay";
+import GlobalNotificationSystem from "@/components/GlobalNotificationSystem";
 
 export default function RootLayout({
   children,
@@ -39,6 +40,7 @@ export default function RootLayout({
       <body>
         {children}
         <StoreClosedOverlay />
+        <GlobalNotificationSystem />
       </body>
     </html>
   );
