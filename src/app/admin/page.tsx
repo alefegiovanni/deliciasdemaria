@@ -406,9 +406,15 @@ const categories = Array.from(new Set(productsList.map(p => p.category)));
         <strong>Filtro Atual:</strong> {statusFilter}<br/>
         <strong>Pedidos Passando no Filtro:</strong> {orders.filter(o => {
           const matchesSearch = o.customer_name?.toLowerCase().includes(search.toLowerCase()) || o.id.includes(search);
-          const matchesStatus = statusFilter === 'all' || 
-                                o.status === statusFilter || 
-                                (statusFilter === 'active' && ['received', 'preparing', 'ready'].includes(o.status));
+          let matchesStatus = false;
+          if (statusFilter === 'all') matchesStatus = true;
+          else if (statusFilter === 'active') {
+            matchesStatus = ['received', 'preparing'].includes(o.status) || (o.status === 'ready' && !o.driver_id);
+          } else if (statusFilter === 'out_for_delivery') {
+            matchesStatus = o.status === 'out_for_delivery' || (o.status === 'ready' && o.driver_id);
+          } else {
+            matchesStatus = o.status === statusFilter;
+          }
           return matchesSearch && matchesStatus;
         }).length}
       </div>
@@ -552,7 +558,7 @@ const categories = Array.from(new Set(productsList.map(p => p.category)));
                 onClick={() => setStatusFilter('active')}
               >
                 <p>Ativos (Cozinha)</p>
-                <h3>{orders.filter(o => ['received', 'preparing', 'ready'].includes(o.status)).length}</h3>
+                <h3>{orders.filter(o => ['received', 'preparing'].includes(o.status) || (o.status === 'ready' && !o.driver_id)).length}</h3>
               </div>
               <div 
                 className={`${styles.statCard} ${statusFilter === 'preparing' ? styles.statCardActive : ''}`}
@@ -566,7 +572,7 @@ const categories = Array.from(new Set(productsList.map(p => p.category)));
                 onClick={() => setStatusFilter('out_for_delivery')}
               >
                 <p>Em Rota</p>
-                <h3>{orders.filter(o => o.status === 'out_for_delivery').length}</h3>
+                <h3>{orders.filter(o => o.status === 'out_for_delivery' || (o.status === 'ready' && o.driver_id)).length}</h3>
               </div>
               <div 
                 className={styles.statCard}
@@ -600,9 +606,15 @@ const categories = Array.from(new Set(productsList.map(p => p.category)));
                 <tbody>
                   {orders.filter(o => {
                     const matchesSearch = o.customer_name?.toLowerCase().includes(search.toLowerCase()) || o.id.includes(search);
-                    const matchesStatus = statusFilter === 'all' || 
-                                          o.status === statusFilter || 
-                                          (statusFilter === 'active' && ['received', 'preparing', 'ready'].includes(o.status));
+                    let matchesStatus = false;
+                    if (statusFilter === 'all') matchesStatus = true;
+                    else if (statusFilter === 'active') {
+                      matchesStatus = ['received', 'preparing'].includes(o.status) || (o.status === 'ready' && !o.driver_id);
+                    } else if (statusFilter === 'out_for_delivery') {
+                      matchesStatus = o.status === 'out_for_delivery' || (o.status === 'ready' && o.driver_id);
+                    } else {
+                      matchesStatus = o.status === statusFilter;
+                    }
                     return matchesSearch && matchesStatus;
                   }).map(order => (
 
