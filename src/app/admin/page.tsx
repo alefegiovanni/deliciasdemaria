@@ -85,8 +85,6 @@ export default function KitchenDashboard() {
     }
 
     // Fix for Desktop Browser Connection Pool Exhaustion:
-    // Launching 5 parallel requests + WebSocket immediately can freeze Edge/Chrome.
-    // We await the most critical one first (orders), then launch the others.
     const initData = async () => {
       await fetchOrders(true);
       fetchSettings();
@@ -95,23 +93,6 @@ export default function KitchenDashboard() {
       fetchDrivers();
     };
     initData();
-
-    // Strategy 1: Supabase Realtime WebSocket (fires instantly when configured)
-    const channel = supabase
-      .channel('kitchen-realtime-v3')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
-        const newOrder = payload.new;
-        console.log('[REALTIME] INSERT via WebSocket:', newOrder.id);
-        handleNewOrder(newOrder);
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, (payload) => {
-        setOrders(prev => prev.map(o => o.id === payload.new.id ? { ...o, ...payload.new } : o));
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => fetchProducts())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => fetchSettings())
-      .subscribe((status) => {
-        console.log('[REALTIME] Status:', status);
-      });
 
     let isMounted = true;
 
@@ -123,7 +104,6 @@ export default function KitchenDashboard() {
 
     return () => {
       isMounted = false;
-      supabase.removeChannel(channel);
       clearInterval(pollInterval);
     };
   }, [handleNewOrder]);
