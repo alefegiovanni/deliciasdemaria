@@ -415,7 +415,8 @@ export default function KitchenDashboard() {
       case 'received': return 'Recebido';
       case 'preparing': return 'Em Preparo';
       case 'ready': return 'Pronto';
-      case 'out_for_delivery': return driverId ? 'Em Rota' : 'Ag. Motoboy';
+      case 'dispatched': return 'Atribuído';
+      case 'out_for_delivery': return 'Em Rota';
       case 'delivered': return 'Entregue';
       default: return status;
     }
@@ -1239,7 +1240,7 @@ export default function KitchenDashboard() {
               
               <div className={styles.dispatchGrid}>
                 {drivers.filter(d => d.active).map(driver => {
-                  const activeCount = orders.filter(o => o.driver_id === driver.id && o.status === 'out_for_delivery').length;
+                  const activeCount = orders.filter(o => o.driver_id === driver.id && ['dispatched', 'out_for_delivery'].includes(o.status)).length;
                   const initials = driver.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
 
                   return (
@@ -1248,7 +1249,7 @@ export default function KitchenDashboard() {
                       className={styles.driverCard}
                       onClick={() => {
                         if (orderToDispatch) {
-                          updateStatus(orderToDispatch, 'out_for_delivery', driver.id);
+                              updateStatus(orderToDispatch, 'dispatched', driver.id);
                           setIsDispatchModalOpen(false);
                           setOrderToDispatch(null);
                         }

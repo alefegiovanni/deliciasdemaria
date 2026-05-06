@@ -137,25 +137,19 @@ export default function DriverDashboard() {
         .from('orders')
         .select('*')
         .eq('driver_id', driver.id)
-        .in('status', ['out_for_delivery', 'dispatched']) // Support both legacy and new status
+        .in('status', ['dispatched', 'out_for_delivery'])
         .order('created_at', { ascending: false });
 
       if (!errAvail && allAssigned) {
-        // 2. Identify if there's an active delivery (already picked up or being tracked)
-        // For now, we assume the driver can only have ONE active delivery at a time.
-        // We'll check if they are already tracking one in the state.
-        
-        // If we don't have an activeOrder in state, but the DB says we have one in 'out_for_delivery'
-        // we should check if it's already "accepted" or just "assigned".
-        // Logic: Maria assigns -> it's in the "Ready" list. Driver clicks "Confirmar" -> it's "Active".
-        
-        // For simplicity: The list shows EVERYTHING assigned to them.
-        // We filter out the one that is currently active in the UI.
-        setOrders(allAssigned.filter(o => o.id !== activeOrder?.id));
+        // Auto-recovery: If we have an order with 'out_for_delivery' but no activeOrder state, resume it
+        const currentActive = allAssigned.find(o => o.status === 'out_for_delivery');
+        if (currentActive && !activeOrder) {
+          setActiveOrder(currentActive);
+          setIsTracking(true);
+        }
 
-        // 3. Auto-recovery: If we have an assigned order but no activeOrder state, 
-        // and we were previously tracking something (or just refreshed), we could auto-resume.
-        // But let's keep it simple: the driver sees their assigned orders and confirms pickup.
+        // The list shows ONLY 'dispatched' orders (those waiting for pickup)
+        setOrders(allAssigned.filter(o => o.status === 'dispatched'));
       }
     } catch (err) {
       console.error('[fetchReadyOrders] Error:', err);
@@ -197,30 +191,23 @@ export default function DriverDashboard() {
     try {
       setIsFetching(true); // Show loading state
 
-      // We only need to update the status to 'out_for_delivery' 
-      // (although Maria already set it, this confirms the driver has physically started the delivery)
-      const { error } = await supabase
+      // Update status from 'dispatched' to 'out_for_delivery'
+      const { data: updated, error } = await supabase
         .from('orders')
         .update({ 
           status: 'out_for_delivery' 
         })
         .eq('id', orderId)
-        .eq('driver_id', currentDriver.id);
+        .eq('driver_id', currentDriver.id)
+        .select();
 
       if (error) throw error;
 
-      // Find the order in our local list to set it as active
-      const accepted = orders.find(o => o.id === orderId);
-      if (accepted) {
-        setActiveOrder(accepted);
+      if (updated && updated.length > 0) {
+        setActiveOrder(updated[0]);
         setIsTracking(true);
       } else {
-        // If not in list, fetch it specifically
-        const { data: freshOrder } = await supabase.from('orders').select('*').eq('id', orderId).single();
-        if (freshOrder) {
-          setActiveOrder(freshOrder);
-          setIsTracking(true);
-        }
+        throw new Error('Não foi possível confirmar a retirada. O pedido pode ter sido alterado.');
       }
     } catch (err: any) {
       console.error('[acceptOrder] Error:', err);
