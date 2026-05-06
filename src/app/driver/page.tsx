@@ -36,7 +36,7 @@ export default function DriverDashboard() {
             return;
           }
           setCurrentDriver(data);
-          sessionStorage.setItem('delicias_driver', JSON.stringify(data));
+          localStorage.setItem('delicias_driver', JSON.stringify(data));
           window.history.replaceState({}, document.title, '/driver');
         }
       } 
@@ -66,7 +66,7 @@ export default function DriverDashboard() {
           { event: 'UPDATE', schema: 'public', table: 'drivers', filter: `id=eq.${currentDriver.id}` }, 
           (payload: any) => {
             if (payload.new && !payload.new.active) {
-              sessionStorage.clear();
+              localStorage.clear();
               alert('Sua conta foi desativada. Entre em contato com a administração.');
               router.push('/login');
             }
@@ -101,7 +101,7 @@ export default function DriverDashboard() {
   const verifyPin = () => {
     if (tempDriver && (pinInput === tempDriver.pin || !tempDriver.pin)) {
       setCurrentDriver(tempDriver);
-      sessionStorage.setItem('delicias_driver', JSON.stringify(tempDriver));
+      localStorage.setItem('delicias_driver', JSON.stringify(tempDriver));
       setShowPinModal(false);
     } else {
       alert('PIN Incorreto! Verifique com a administração.');
@@ -283,9 +283,20 @@ export default function DriverDashboard() {
           <div className={styles.listSection}>
             <div className={styles.driverWelcome}>
               <span>Motoboy: <strong>{currentDriver.name}</strong></span>
-              <button onClick={() => { sessionStorage.removeItem('delicias_driver'); setCurrentDriver(null); }} className={styles.changeBtn}>
+              <button onClick={() => { localStorage.removeItem('delicias_driver'); setCurrentDriver(null); }} className={styles.changeBtn}>
                 Trocar
               </button>
+            </div>
+            <div style={{ 
+              fontSize: '11px', 
+              color: '#d44e6d', 
+              marginBottom: '1rem', 
+              padding: '8px', 
+              background: '#fff1f2', 
+              borderRadius: '8px',
+              fontWeight: '600'
+            }}>
+              Sincronização: {orders.length} pedidos encontrados | Última atualização: {new Date().toLocaleTimeString()}
             </div>
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>Entregas Disponíveis</h2>
