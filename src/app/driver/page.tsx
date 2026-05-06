@@ -148,7 +148,7 @@ export default function DriverDashboard() {
         .from('orders')
         .select('*')
         .eq('driver_id', driver.id)
-        .in('status', ['dispatched', 'out_for_delivery'])
+        .in('status', ['ready', 'out_for_delivery'])
         .order('created_at', { ascending: false });
 
       if (!errAvail && allAssigned) {
@@ -159,8 +159,8 @@ export default function DriverDashboard() {
           setIsTracking(true);
         }
 
-        // The list shows ONLY 'dispatched' orders (those waiting for pickup)
-        setOrders(allAssigned.filter(o => o.status === 'dispatched'));
+        // The list shows ONLY 'ready' orders (those waiting for pickup)
+        setOrders(allAssigned.filter(o => o.status === 'ready'));
       }
     } catch (err) {
       console.error('[fetchReadyOrders] Error:', err);

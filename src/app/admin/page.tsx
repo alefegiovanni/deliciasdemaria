@@ -387,8 +387,8 @@ export default function KitchenDashboard() {
     switch (status) {
       case 'received': return 'Recebido';
       case 'preparing': return 'Em Preparo';
-      case 'ready': return 'Pronto';
-      case 'dispatched': return 'Atribuído';
+      case 'ready': return driverId ? 'Atribuído' : 'Pronto';
+      case 'dispatched': return 'Atribuído'; // Legacy
       case 'out_for_delivery': return 'Em Rota';
       case 'delivered': return 'Entregue';
       default: return status;
@@ -406,7 +406,9 @@ const categories = Array.from(new Set(productsList.map(p => p.category)));
         <strong>Filtro Atual:</strong> {statusFilter}<br/>
         <strong>Pedidos Passando no Filtro:</strong> {orders.filter(o => {
           const matchesSearch = o.customer_name?.toLowerCase().includes(search.toLowerCase()) || o.id.includes(search);
-          const matchesStatus = statusFilter === 'all' || o.status === statusFilter || (statusFilter === 'active' && ['received', 'preparing', 'ready', 'dispatched'].includes(o.status)) || (statusFilter === 'out_for_delivery' && ['out_for_delivery', 'dispatched'].includes(o.status));
+          const matchesStatus = statusFilter === 'all' || 
+                                o.status === statusFilter || 
+                                (statusFilter === 'active' && ['received', 'preparing', 'ready'].includes(o.status));
           return matchesSearch && matchesStatus;
         }).length}
       </div>
@@ -564,29 +566,28 @@ const categories = Array.from(new Set(productsList.map(p => p.category)));
                 onClick={() => setStatusFilter('out_for_delivery')}
               >
                 <p>Em Rota</p>
-                <h3>{orders.filter(o => o.status === 'out_for_delivery' || o.status === 'dispatched').length}</h3>
+                <h3>{orders.filter(o => o.status === 'out_for_delivery').length}</h3>
               </div>
               <div 
-                className={`${styles.statCard} ${statusFilter === 'delivered' ? styles.statCardActive : ''} ${styles.statCardHistory}`}
-                onClick={() => setStatusFilter('delivered')}
+                className={styles.statCard}
+                onClick={() => router.push('/admin/tracking')}
               >
                 <p>Histórico</p>
-                <small>Ver Concluídos</small>
+                <span className={styles.linkText}>Ver Concluídos</span>
               </div>
             </section>
 
+            <div className={styles.searchBar}>
+              <Search size={20} className={styles.searchIcon} />
+              <input 
+                type="text" 
+                placeholder="Buscar pedido por cliente..." 
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
 
             <div className={styles.orderContainer}>
-              <div className={styles.searchBar}>
-                <Search size={20} />
-                <input 
-                  type="text" 
-                  placeholder="Buscar pedido por cliente..." 
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-
               <table className={styles.table}>
                 <thead>
                   <tr>
@@ -597,13 +598,13 @@ const categories = Array.from(new Set(productsList.map(p => p.category)));
                   </tr>
                 </thead>
                 <tbody>
-                  {orders
-                    .filter(o => {
-                      const matchesSearch = o.customer_name?.toLowerCase().includes(search.toLowerCase()) || o.id.includes(search);
-                      const matchesStatus = statusFilter === 'all' || o.status === statusFilter || (statusFilter === 'active' && ['received', 'preparing', 'ready', 'dispatched'].includes(o.status)) || (statusFilter === 'out_for_delivery' && ['out_for_delivery', 'dispatched'].includes(o.status));
-                      return matchesSearch && matchesStatus;
-                    })
-                    .map(order => (
+                  {orders.filter(o => {
+                    const matchesSearch = o.customer_name?.toLowerCase().includes(search.toLowerCase()) || o.id.includes(search);
+                    const matchesStatus = statusFilter === 'all' || 
+                                          o.status === statusFilter || 
+                                          (statusFilter === 'active' && ['received', 'preparing', 'ready'].includes(o.status));
+                    return matchesSearch && matchesStatus;
+                  }).map(order => (
 
                     <tr key={order.id}>
                       <td>
@@ -1233,7 +1234,7 @@ const categories = Array.from(new Set(productsList.map(p => p.category)));
                       className={styles.driverCard}
                       onClick={() => {
                         if (orderToDispatch) {
-                              updateStatus(orderToDispatch, 'dispatched', driver.id);
+                              updateStatus(orderToDispatch, 'ready', driver.id);
                           setIsDispatchModalOpen(false);
                           setOrderToDispatch(null);
                         }
