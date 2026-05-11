@@ -1773,3 +1773,51 @@
     padding-bottom: env(safe-area-inset-bottom, 2rem);
   }
 }
+
+.automatedRulesCard {
+  background: white;
+  padding: 2rem;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  max-width: 600px;
+  margin-bottom: 2rem;
+}
+
+.automatedRulesCard h3 {
+  color: var(--primary);
+  margin-bottom: 1.5rem;
+  font-size: 1.25rem;
+}
+
+.ruleDetail {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.ruleDetail:last-of-type {
+  border-bottom: none;
+}
+
+.ruleDetail strong {
+  color: var(--text-main);
+}
+
+.ruleDetail span {
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.ruleNote {
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  background: var(--background);
+  padding: 1rem;
+  border-radius: 12px;
+  border-left: 4px solid var(--primary);
+}

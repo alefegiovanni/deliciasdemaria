@@ -1063,59 +1063,44 @@ const categories = Array.from(new Set(productsList.map(p => p.category)));
               </div>
             )}
 
-            <div className={styles.feeForm}>
-              <div className={styles.inputGroup}>
-                <label>Distância Máxima (km)</label>
-                <input 
-                  type="number" 
-                  value={newDistanceFee.maxKm}
-                  onChange={(e) => setNewDistanceFee({...newDistanceFee, maxKm: e.target.value})}
-                  placeholder="Ex: 5"
-                />
+            <div className={styles.automatedRulesCard}>
+              <h3>Configuração de Taxa Automática</h3>
+              
+              <div className={styles.ruleDetail}>
+                <strong>Taxa Mínima (Até 1 km)</strong>
+                <span>R$ 5,00</span>
               </div>
-              <div className={styles.inputGroup}>
-                <label>Valor da Taxa (R$)</label>
-                <input 
-                  type="number" 
-                  value={newDistanceFee.price}
-                  onChange={(e) => setNewDistanceFee({...newDistanceFee, price: e.target.value})}
-                  placeholder="Ex: 7.00"
-                />
+              
+              <div className={styles.ruleDetail}>
+                <strong>Adicional por Km Excedente</strong>
+                <span>R$ 1,50 / km</span>
               </div>
-              <button className={styles.btnSaveRule} onClick={addDistanceFee}>
-                <Plus size={20} /> Adicionar Regra
-              </button>
+              
+              <div className={styles.ruleNote}>
+                <p>
+                  <strong>Como funciona:</strong> O sistema calcula a distância exata entre a 
+                  <strong> Delícias de Maria</strong> e o cliente usando geolocalização. 
+                  Se a distância for menor que 1km, aplica-se a taxa mínima. 
+                  Para cada quilômetro adicional, soma-se R$ 1,50 ao valor base.
+                </p>
+              </div>
             </div>
 
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Raio de Distância</th>
-                  <th>Valor da Taxa</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {distanceFees.map((fee, idx) => (
-                  <tr key={idx}>
-                    <td><strong>Até {fee.maxKm} Km</strong></td>
-                    <td>R$ {fee.price.toFixed(2)}</td>
-                    <td>
-                      <button className={styles.btnDelete} onClick={() => removeDistanceFee(idx)}>
-                        <Trash2 size={18} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {distanceFees.length === 0 && (
-                  <tr>
-                    <td colSpan={3} style={{ textAlign: 'center', padding: '3rem', color: '#999' }}>
-                      Nenhuma regra de distância configurada.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+            <div className={styles.storeAddressConfig}>
+              <div className={styles.storeAddressHeader}>
+                <label><MapPin size={14} /> Endereço da Loja (Origem do Cálculo)</label>
+                <div className={styles.currentAddress}>
+                  {storeAddress || 'Endereço não configurado'}
+                </div>
+                <button 
+                  className={styles.btnAddItemMain} 
+                  style={{ marginTop: '0.5rem', width: 'fit-content' }}
+                  onClick={() => setIsAddressModalOpen(true)}
+                >
+                  <Edit size={16} /> Alterar Endereço
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

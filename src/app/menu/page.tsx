@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { ShoppingBag, Plus, Minus, X, MapPin, CheckCircle2, ChevronRight, ArrowLeft, Search, Clock, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase, createOrder } from '@/lib/supabase';
+import { calcularTaxaEntrega, TAXA_MINIMA } from '@/lib/delivery';
 import { useRouter } from 'next/navigation';
 import styles from './menu.module.css';
 
@@ -194,40 +195,38 @@ export default function MenuPage() {
     }
   };
 
-  const getCoordinates = async (address: string) => {
+  const getCoordinates = async (address: string, cepValue?: string) => {
     try {
-      // Senior: Clean address from noise like (CEP: ...) which breaks Nominatim
       const cleanAddr = address.replace(/\(CEP:.*?\)/g, '').replace(/-/g, ',').trim();
-      
-      // Senior: Use CEP + Brasil for maximum precision if it's a CEP
-      let searchAddr = cleanAddr;
-      const isCEP = /^[0-9]{8}$/.test(cleanAddr.replace(/[^0-9]/g, ''));
-      
-      if (isCEP) {
-        searchAddr = `${cleanAddr}, Brasil`;
-      } else if (!cleanAddr.toLowerCase().includes('brasil')) {
-        // Add city context if not present for street searches
-        if (!cleanAddr.toLowerCase().includes('são josé') && !cleanAddr.toLowerCase().includes('caçapava')) {
-          searchAddr = `${cleanAddr}, Caçapava, SP, Brasil`;
-        } else {
-          searchAddr = `${cleanAddr}, Brasil`;
+      const detectedCEP = (cepValue || (address.match(/\d{5}-?\d{3}/) || [])[0] || '').replace(/\D/g, '');
+      const detectedCity = cleanAddr.toLowerCase().includes('são josé') ? 'São José dos Campos' : 
+                          cleanAddr.toLowerCase().includes('caçapava') ? 'Caçapava' : 'Caçapava';
+
+      // Senior: 1. Try by CEP + City together for maximum precision
+      if (detectedCEP.length === 8) {
+        const query = `${detectedCEP} ${detectedCity}, Brasil`;
+        console.log(`[Geocoding] Attempt 1 (CEP+City): ${query}`);
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`, {
+          headers: { 'User-Agent': 'DeliciasDeMaria/1.0' }
+        });
+        const data = await res.json();
+        if (data && data.length > 0) {
+          return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), display: data[0].display_name };
         }
       }
 
-      console.log('[Geocoding] Searching for:', searchAddr);
-
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchAddr)}&limit=1`, {
-        headers: {
-          'User-Agent': 'DeliciasDeMaria/1.0'
-        }
+      // Senior: 2. Try by Street + City
+      const street = cleanAddr.split(',')[0];
+      const query2 = `${street}, ${detectedCity}, SP, Brasil`;
+      console.log(`[Geocoding] Attempt 2 (Street+City): ${query2}`);
+      const res2 = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query2)}&limit=1`, {
+        headers: { 'User-Agent': 'DeliciasDeMaria/1.0' }
       });
-      const data = await response.json();
-
-      if (data && data.length > 0) {
-        console.log('[Geocoding] Found:', data[0].display_name);
-        return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+      const data2 = await res2.json();
+      if (data2 && data2.length > 0) {
+        return { lat: parseFloat(data2[0].lat), lon: parseFloat(data2[0].lon), display: data2[0].display_name };
       }
-      console.warn('[Geocoding] No results found for:', searchAddr);
+
       return null;
     } catch (error) {
       console.error('Geocoding error:', error);
@@ -254,7 +253,7 @@ export default function MenuPage() {
       }
       
       const storeCoords = storeCoordsRef.current;
-      let customerCoords = await getCoordinates(customerAddr);
+      let customerCoords = await getCoordinates(customerAddr, cep);
 
       // Fallback: Try searching only by CEP if full address failed
       if (!customerCoords && cep) {
@@ -264,19 +263,23 @@ export default function MenuPage() {
       if (storeCoords && customerCoords) {
         const dist = calculateDistance(storeCoords.lat, storeCoords.lon, customerCoords.lat, customerCoords.lon);
         console.log(`[Fee] Distance calculated: ${dist.toFixed(2)}km`);
-        setDistance(dist);
+        setDistance(Object.assign(Number(dist), { display_target: customerCoords.display }));
         
-        const feeRule = distanceFees.find(f => dist <= f.maxKm);
-        if (feeRule) {
-          setSelectedFee(feeRule.price);
-        } else {
-          // If distance exceeds all rules, use the highest one
-          setSelectedFee(distanceFees[distanceFees.length - 1]?.price || 0);
-        }
+        // Nova lógica de taxa proporcional
+        const fee = calcularTaxaEntrega(dist);
+        setSelectedFee(fee);
       } else {
-        console.warn('[Fee] Could not determine coordinates. Using fallback fee.');
-        // Default to the last (highest) fee rule if geocoding fails
-        setSelectedFee(distanceFees[distanceFees.length - 1]?.price || 0);
+        console.warn('[Fee] Could not determine coordinates. Using fallback logic.');
+        
+        // Senior: Fallback Logic - If geocoding fails but we know the city is Caçapava,
+        // we use the minimum fee.
+        const isLocal = customerAddr.toLowerCase().includes('caçapava');
+        if (isLocal) {
+          setSelectedFee(TAXA_MINIMA);
+        } else {
+          // If not local and geocoding failed, use a slightly higher default or keep minimum
+          setSelectedFee(TAXA_MINIMA + 3.00); // Ex: R$ 8,00 as a safe default for unknown distances
+        }
       }
     } catch (err) {
       console.error('Fee calculation error:', err);
@@ -373,7 +376,7 @@ export default function MenuPage() {
         estimated_time: estimatedTime
       };
 
-      const newOrder = await createOrder(orderData);
+      const newOrder = await createOrder(orderData, distance);
       
       if (!newOrder?.id) throw new Error('Não foi possível obter o ID do pedido.');
 

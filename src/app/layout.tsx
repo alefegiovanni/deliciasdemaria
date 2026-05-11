@@ -33,11 +33,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <meta name="google" content="notranslate" />
       </head>
-      <body>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
         <StoreClosedOverlay />
         <GlobalNotificationSystem />
