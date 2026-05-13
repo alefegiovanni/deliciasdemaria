@@ -147,8 +147,8 @@
 
 .orderCard {
   background: white;
-  padding: 1.5rem;
-  border-radius: 20px; /* iPhone Widget Style */
+  padding: 1.25rem; /* Reduced from 1.5rem */
+  border-radius: 18px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.03);
   border: 1px solid #e5e5ea;
 }
@@ -211,11 +211,11 @@
 
 .activeDelivery {
   background: white;
-  padding: 2rem 1.5rem;
-  border-radius: 24px;
+  padding: 1.5rem 1.25rem; /* Reduced from 2rem */
+  border-radius: 20px;
   box-shadow: 0 10px 25px rgba(0,0,0,0.05);
   margin-top: 1rem;
-  border: 1px solid var(--border);
+  border: 1px solid #f2f2f7;
 }
 
 .deliveryHeader {
