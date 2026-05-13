@@ -44,6 +44,7 @@ export default function MenuPage() {
   const [recoveryPhone, setRecoveryPhone] = useState('');
   const [foundOrders, setFoundOrders] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isManual, setIsManual] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -328,24 +329,24 @@ export default function MenuPage() {
         
         if (!data.erro) {
           console.log(`[ViaCEP] Result: ${data.logradouro}, ${data.bairro}, ${data.localidade}`);
+          setIsManual(false);
           
           // Senior: Lock the display data to ViaCEP results
           setStreet(data.logradouro);
-          setCity(data.localidade);
+          setCity(data.localidade || 'São José dos Campos');
           setNeighborhood(data.bairro);
           
           // Trigger fee calculation with PINPOINT precision
-          // We use Street + Number + City + SP to avoid geocoding ambiguity
-          const addrForGeocoding = `${data.logradouro}, ${number || '1'}, ${data.localidade}, SP`;
+          const addrForGeocoding = `${data.logradouro}, ${number || '1'}, ${data.localidade || 'São José dos Campos'}, SP`;
           await updateDeliveryFee(addrForGeocoding);
         } else {
           console.error('[ViaCEP] CEP não encontrado');
-          setStreet('');
-          setNeighborhood('');
-          alert('CEP não encontrado. Por favor, verifique o número.');
+          setIsManual(true);
+          // Don't alert here to avoid annoying user, just show fields
         }
       } catch (err) {
         console.error('[ViaCEP] Erro ao buscar CEP', err);
+        setIsManual(true);
       } finally {
         setCalculatingFee(false);
       }
@@ -645,13 +646,46 @@ export default function MenuPage() {
                        />
                      </div>
 
-                     {street ? (
+                     {(street && !isManual) ? (
                        <div className={styles.addressDisplay}>
                          <p>{street}, {number || 'S/N'}</p>
                          <p>{neighborhood} - {city}</p>
+                         <button className={styles.btnManual} onClick={() => setIsManual(true)}>
+                           Digitar endereço manualmente
+                         </button>
                        </div>
                      ) : (
-                       <p className={styles.addressDisplay}>Informe o CEP para calcular a entrega</p>
+                       <div className={styles.manualAddressGroup}>
+                         <p style={{ fontSize: '0.7rem', color: '#999', marginBottom: '0.4rem' }}>
+                           {cep.length >= 8 && !street ? 'CEP não encontrado. Digite os dados:' : 'Confirme seu endereço:'}
+                         </p>
+                         <input 
+                           className={styles.manualInput}
+                           placeholder="Rua / Logradouro"
+                           value={street}
+                           onChange={(e) => setStreet(e.target.value)}
+                           onBlur={handleNumberBlur}
+                         />
+                         <input 
+                           className={styles.manualInput}
+                           placeholder="Bairro"
+                           value={neighborhood}
+                           onChange={(e) => setNeighborhood(e.target.value)}
+                           onBlur={handleNumberBlur}
+                         />
+                         <input 
+                           className={styles.manualInput}
+                           placeholder="Cidade"
+                           value={city}
+                           onChange={(e) => setCity(e.target.value)}
+                           onBlur={handleNumberBlur}
+                         />
+                         {street && (
+                           <button className={styles.btnManual} onClick={() => setIsManual(false)}>
+                             Voltar para busca automática
+                           </button>
+                         )}
+                       </div>
                      )}
                    </div>
 
