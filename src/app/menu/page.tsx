@@ -217,32 +217,37 @@ export default function MenuPage() {
     try {
       if (!address || address.trim() === '') return null;
 
-      // Senior: Clean the address but keep essential info
+      // Senior: Clean and normalize address
       const cleanAddr = address.replace(/\(CEP:.*?\)/g, '').replace(/-/g, ',').trim();
       const detectedCEP = (cepValue || (address.match(/\d{5}-?\d{3}/) || [])[0] || '').replace(/\D/g, '');
       
-      // Senior: 1. Try by CEP + Brasil for maximum precision (CEP is unique in Brazil)
-      if (detectedCEP.length === 8) {
-        const query = `${detectedCEP}, Brasil`;
-        console.log(`[Geocoding] Attempt 1 (CEP): ${query}`);
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&postalcode=${detectedCEP}&country=Brazil&limit=1`, {
-          headers: { 'User-Agent': 'DeliciasDeMaria/1.2' }
-        });
-        const data = await res.json();
-        if (data && data.length > 0) {
-          return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), display: data[0].display_name };
-        }
+      // Senior: 1. Try by exact Street, Number and CEP for maximum precision
+      const query1 = `${cleanAddr}, São Paulo, Brasil`;
+      console.log(`[Geocoding] Precise Search: ${query1}`);
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query1)}&limit=1&addressdetails=1`, {
+        headers: { 'User-Agent': 'DeliciasDeMaria/1.3' }
+      });
+      const data = await res.json();
+      
+      if (data && data.length > 0) {
+        return { 
+          lat: parseFloat(data[0].lat), 
+          lon: parseFloat(data[0].lon), 
+          display: data[0].display_name 
+        };
       }
 
-      // Senior: 2. Fallback to full address string - FORCE São Paulo and Brazil
-      const query2 = `${cleanAddr}, São Paulo, Brasil`;
-      console.log(`[Geocoding] Attempt 2 (Full): ${query2}`);
-      const res2 = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query2)}&limit=1`, {
-        headers: { 'User-Agent': 'DeliciasDeMaria/1.2' }
-      });
-      const data2 = await res2.json();
-      if (data2 && data2.length > 0) {
-        return { lat: parseFloat(data2[0].lat), lon: parseFloat(data2[0].lon), display: data2[0].display_name };
+      // Senior: 2. Fallback to just CEP + Brasil
+      if (detectedCEP.length === 8) {
+        const query2 = `${detectedCEP}, Brasil`;
+        console.log(`[Geocoding] Fallback CEP Search: ${query2}`);
+        const res2 = await fetch(`https://nominatim.openstreetmap.org/search?format=json&postalcode=${detectedCEP}&country=Brazil&limit=1`, {
+          headers: { 'User-Agent': 'DeliciasDeMaria/1.3' }
+        });
+        const data2 = await res2.json();
+        if (data2 && data2.length > 0) {
+          return { lat: parseFloat(data2[0].lat), lon: parseFloat(data2[0].lon), display: data2[0].display_name };
+        }
       }
 
       return null;
@@ -322,23 +327,27 @@ export default function MenuPage() {
       try {
         setCalculatingFee(true);
         console.log(`[ViaCEP] Searching: ${cleanCEP}`);
+        
         const res = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`);
         const data = await res.json();
         
         if (!data.erro) {
           console.log(`[ViaCEP] Result: ${data.logradouro}, ${data.bairro}, ${data.localidade}`);
           
-          // Force update states
+          // Senior: Lock the display data to ViaCEP results
           setStreet(data.logradouro);
           setCity(data.localidade);
           setNeighborhood(data.bairro);
           
-          // Calculate fee using exact data from ViaCEP
-          const addrForFee = `${data.logradouro}, ${number || 'S/N'}, ${data.bairro}, ${data.localidade}`;
-          await updateDeliveryFee(addrForFee);
+          // Trigger fee calculation with PINPOINT precision
+          // We use Street + Number + City + SP to avoid geocoding ambiguity
+          const addrForGeocoding = `${data.logradouro}, ${number || '1'}, ${data.localidade}, SP`;
+          await updateDeliveryFee(addrForGeocoding);
         } else {
           console.error('[ViaCEP] CEP não encontrado');
-          // Optional: clear address if not found to avoid confusion
+          setStreet('');
+          setNeighborhood('');
+          alert('CEP não encontrado. Por favor, verifique o número.');
         }
       } catch (err) {
         console.error('[ViaCEP] Erro ao buscar CEP', err);
