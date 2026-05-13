@@ -217,19 +217,16 @@ export default function MenuPage() {
     try {
       if (!address || address.trim() === '') return null;
 
+      // Senior: Clean the address but keep essential info
       const cleanAddr = address.replace(/\(CEP:.*?\)/g, '').replace(/-/g, ',').trim();
       const detectedCEP = (cepValue || (address.match(/\d{5}-?\d{3}/) || [])[0] || '').replace(/\D/g, '');
       
-      // Senior: Detect city more robustly
-      const isSJC = cleanAddr.toLowerCase().includes('são josé') || cleanAddr.toLowerCase().includes('sjc');
-      const detectedCity = isSJC ? 'São José dos Campos' : 'Caçapava';
-
-      // Senior: 1. Try by CEP + City + State for maximum precision
+      // Senior: 1. Try by CEP + Brasil for maximum precision (CEP is unique in Brazil)
       if (detectedCEP.length === 8) {
-        const query = `${detectedCEP}, ${detectedCity}, SP, Brasil`;
-        console.log(`[Geocoding] Attempt 1 (CEP+City): ${query}`);
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`, {
-          headers: { 'User-Agent': 'DeliciasDeMaria/1.1' }
+        const query = `${detectedCEP}, Brasil`;
+        console.log(`[Geocoding] Attempt 1 (CEP): ${query}`);
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&postalcode=${detectedCEP}&country=Brazil&limit=1`, {
+          headers: { 'User-Agent': 'DeliciasDeMaria/1.2' }
         });
         const data = await res.json();
         if (data && data.length > 0) {
@@ -237,11 +234,11 @@ export default function MenuPage() {
         }
       }
 
-      // Senior: 2. Try by Street + City + SP
-      const query2 = `${cleanAddr}, ${detectedCity}, SP, Brasil`;
+      // Senior: 2. Fallback to full address string
+      const query2 = `${cleanAddr}, SP, Brasil`;
       console.log(`[Geocoding] Attempt 2 (Full): ${query2}`);
       const res2 = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query2)}&limit=1`, {
-        headers: { 'User-Agent': 'DeliciasDeMaria/1.1' }
+        headers: { 'User-Agent': 'DeliciasDeMaria/1.2' }
       });
       const data2 = await res2.json();
       if (data2 && data2.length > 0) {
@@ -327,12 +324,16 @@ export default function MenuPage() {
         const res = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`);
         const data = await res.json();
         if (!data.erro) {
+          // Senior: Update states immediately
           setStreet(data.logradouro);
           setCity(data.localidade);
           setNeighborhood(data.bairro);
+          
           // Trigger fee calculation with the new data
           const fullAddress = `${data.logradouro}, ${number || 'S/N'}, ${data.bairro}, ${data.localidade}`;
           await updateDeliveryFee(fullAddress);
+        } else {
+          console.error('CEP não encontrado');
         }
       } catch (err) {
         console.error('Erro ao buscar CEP', err);
