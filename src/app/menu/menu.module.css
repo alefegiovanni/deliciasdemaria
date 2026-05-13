@@ -67,6 +67,24 @@
   border: 1px solid #eee;
 }
 
+.driverCard {
+  padding: 1.25rem;
+  border-radius: 16px;
+  background: white;
+  border: 1px solid #e5e5ea;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+.driverCard:hover {
+  transform: scale(1.02);
+  border-color: var(--primary);
+}
+
 .historyButton:hover {
   background: var(--secondary);
   color: var(--primary);
@@ -408,11 +426,12 @@
 
 /* Address Section - Clean & Modern */
 .addressSection {
-  background: #fafafa;
-  border: 1px solid #f0f0f0;
-  padding: 1rem;
-  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #f2f2f7;
+  padding: 1.25rem;
+  border-radius: 20px;
   margin-top: auto;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 
 .addressHeader {
@@ -427,18 +446,28 @@
 
 .cepRow {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  align-items: center;
 }
 
 .cepInput, .numberInput {
+  background: #f2f2f7; /* iOS Secondary System Background */
+  border: 1.5px solid transparent;
+  border-radius: 12px;
+  padding: 0.8rem 1rem;
+  font-size: 16px;
+  color: #1c1c1e;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+  height: 50px; /* Fixed height for perfect alignment */
+  box-sizing: border-box;
+}
+
+.cepInput:focus, .numberInput:focus {
   background: #fff;
-  border: 1px solid #eee;
-  border-radius: 10px;
-  padding: 0.6rem 0.8rem;
-  font-size: 16px; /* Senior: Prevents iOS auto-zoom (min 16px) */
-  align-items: center;
-  transition: all 0.2s;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(212, 78, 109, 0.1);
 }
 
 .recoveryBadge {
@@ -514,7 +543,7 @@
 }
 
 .cepInput { flex: 1; }
-.numberInput { width: 85px; } /* Increased slightly for 16px font */
+.numberInput { width: 95px; } 
 
 .manualAddressGroup {
   display: flex;
@@ -593,23 +622,22 @@
 
 .checkoutBtn {
   width: 100%;
-  background: linear-gradient(135deg, var(--primary) 0%, #ff5e82 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, #ff3b30 100%); /* iOS Red/Pink Gradient */
   color: #fff;
-  padding: 0.9rem;
-  border-radius: 14px;
+  padding: 1.1rem;
+  border-radius: 16px;
   font-weight: 800;
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   border: none;
   cursor: pointer;
-  box-shadow: 0 5px 20px rgba(212, 78, 109, 0.2);
+  box-shadow: 0 8px 25px rgba(212, 78, 109, 0.3);
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
   text-transform: uppercase;
-  touch-action: manipulation;
-  pointer-events: auto;
+  letter-spacing: 0.05em;
 }
 
 .checkoutBtn:hover:not(:disabled) {

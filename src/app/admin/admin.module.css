@@ -100,22 +100,23 @@
 .navItem, .navItemActive {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  border-radius: var(--radius-md);
+  gap: 0.85rem;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
   font-weight: 600;
-  color: #a0a0a0;
-  transition: var(--transition);
+  color: #8e8e93;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .navItem:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.08);
   color: white;
 }
 
 .navItemActive {
   background: var(--primary);
   color: white;
+  box-shadow: 0 4px 12px rgba(212, 78, 109, 0.3);
 }
 
 .content {
@@ -312,18 +313,18 @@
 .statCard {
   background: white;
   padding: 1.5rem;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border);
+  border-radius: 20px; /* iPhone Widget Style */
+  box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+  border: 1px solid #f2f2f7;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
 }
 
 .statCard:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-md);
+  transform: scale(1.02);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.08);
   border-color: var(--primary);
 }
 
@@ -637,10 +638,12 @@
 }
 
 .statusTag {
-  padding: 0.4rem 1rem;
-  border-radius: var(--radius-full);
-  font-size: 0.8rem;
-  font-weight: 700;
+  padding: 0.5rem 1.25rem;
+  border-radius: 50px; /* Pill style */
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .received { background: #e3f2fd; color: #1976d2; }

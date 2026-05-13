@@ -45,12 +45,12 @@
 
 .sidebar {
   width: 350px;
-  background: white;
-  border-right: 1px solid var(--border);
-  padding: 2rem;
+  background: #f2f2f7; /* iOS Sidebar Gray */
+  border-right: 1px solid #e5e5ea;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.5rem;
   flex-shrink: 0;
 }
 
@@ -71,19 +71,21 @@
 }
 
 .driverCard {
-  padding: 1rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
+  padding: 1.25rem;
+  border-radius: 16px;
+  background: white;
+  border: 1px solid #e5e5ea;
   display: flex;
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
 }
 
 .driverCard:hover {
+  transform: scale(1.02);
   border-color: var(--primary);
-  background: var(--secondary);
 }
 
 .active {
@@ -98,12 +100,15 @@
 }
 
 .avatar {
-  width: 40px;
-  height: 40px;
-  background: #f0f2f5;
+  width: 44px;
+  height: 44px;
+  background: #f2f2f7;
   border-radius: 50%;
-  display: flex-center;
-  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8e8e93;
+  border: 1px solid #e5e5ea;
 }
 
 .orderBadge {

@@ -1,9 +1,10 @@
 .main {
   min-height: 100vh;
-  background: #f0f2f5;
+  background: #f2f2f7; /* iOS System Background */
   padding-bottom: 2rem;
   overflow-y: auto;
   overflow-x: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 .header {
@@ -147,9 +148,9 @@
 .orderCard {
   background: white;
   padding: 1.5rem;
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border);
+  border-radius: 20px; /* iPhone Widget Style */
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  border: 1px solid #e5e5ea;
 }
 
 @media (max-width: 480px) {
@@ -196,11 +197,12 @@
   background: var(--primary);
   color: white;
   padding: 1rem;
-  border-radius: 12px;
+  border-radius: 50px; /* Capsule style */
   font-weight: 800;
   font-size: 1rem;
-  box-shadow: 0 4px 12px rgba(212, 78, 109, 0.2);
-  transition: all 0.2s;
+  box-shadow: 0 8px 20px rgba(212, 78, 109, 0.2);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
 }
 
 .btnStart:active {
@@ -313,17 +315,18 @@
 
 .btnComplete {
   width: 100%;
-  background: #10b981;
+  background: #34c759; /* iOS Green */
   color: white;
-  padding: 0.85rem;
-  border-radius: 12px;
+  padding: 1.1rem;
+  border-radius: 50px; /* Pill */
   font-weight: 800;
-  font-size: 0.95rem;
+  font-size: 1.1rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.1);
+  gap: 0.75rem;
+  border: none;
+  box-shadow: 0 8px 20px rgba(52, 199, 89, 0.25);
 }
 
 /* Active Delivery */
