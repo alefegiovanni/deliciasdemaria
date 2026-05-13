@@ -263,12 +263,12 @@ export default function MenuPage() {
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
+    const distance = R * c;
+    console.log(`[DistanceCalc] Lat1:${lat1} Lon1:${lon1} -> Lat2:${lat2} Lon2:${lon2} = ${distance.toFixed(2)}km`);
+    return distance;
   };
 
   const updateDeliveryFee = async (customerAddr: string) => {
-    // Senior: If storeAddress isn't loaded yet, we can't calculate. 
-    // fetchSettings will call this again once it loads.
     if (!customerAddr || !storeAddress) {
       console.log('[Fee] Waiting for storeAddress or customerAddr...');
       return;
@@ -277,7 +277,6 @@ export default function MenuPage() {
     setCalculatingFee(true);
     
     try {
-      // Senior: Only use cache if it was successfully resolved for the CURRENT storeAddress
       if (!storeCoordsRef.current) {
         console.log(`[Fee] Resolving store coordinates for: ${storeAddress}`);
         storeCoordsRef.current = await getCoordinates(storeAddress);
@@ -286,36 +285,32 @@ export default function MenuPage() {
       const storeCoords = storeCoordsRef.current;
       let customerCoords = await getCoordinates(customerAddr, cep);
 
-      // Fallback: Try searching only by CEP if full address failed
       if (!customerCoords && cep) {
         customerCoords = await getCoordinates(cep);
       }
 
       if (storeCoords && customerCoords) {
-        const dist = calculateDistance(storeCoords.lat, storeCoords.lon, customerCoords.lat, customerCoords.lon);
-        console.log(`[Fee] Success! Distance: ${dist.toFixed(2)}km`);
-        console.log(`[Fee] Using: ${customerAddr}`);
+        let dist = calculateDistance(storeCoords.lat, storeCoords.lon, customerCoords.lat, customerCoords.lon);
         
+        // Senior: Safety Check. If distance is > 100km, something is wrong with geocoding
+        // We fallback to a safer estimation or cap it for now to avoid R$ 160 fees
+        if (dist > 100) {
+           console.warn(`[Fee] Distance ${dist}km seems too high. Capping for safety.`);
+           dist = 30; // Force a 30km distance as fallback if geocoding "explodes"
+        }
+
+        console.log(`[Fee] Final Distance: ${dist.toFixed(2)}km`);
         setDistance(dist);
         
         const fee = calcularTaxaEntrega(dist);
         setSelectedFee(fee);
       } else {
-        console.warn('[Fee] Could not determine coordinates. Check if addresses are valid.');
-        console.log(`[Fee] Store Coords: ${storeCoords ? 'OK' : 'FAIL'} | Customer Coords: ${customerCoords ? 'OK' : 'FAIL'}`);
-        
-        // Senior: Fallback Logic
-        const isLocal = customerAddr.toLowerCase().includes('caçapava');
-        if (isLocal) {
-          setSelectedFee(TAXA_MINIMA);
-        } else {
-          // If not local and geocoding failed, use a higher default
-          setSelectedFee(TAXA_MINIMA + 10.00); // R$ 15,00 default for out-of-town unknown distance
-        }
+        console.warn('[Fee] Could not determine coordinates.');
+        setSelectedFee(TAXA_MINIMA + 15.00); // R$ 20,00 total fallback
       }
     } catch (err) {
       console.error('Fee calculation error:', err);
-      setSelectedFee(TAXA_MINIMA + 5.00);
+      setSelectedFee(TAXA_MINIMA + 15.00);
     } finally {
       setCalculatingFee(false);
     }
