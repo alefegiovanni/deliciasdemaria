@@ -662,10 +662,10 @@ export default function MenuPage() {
                      id="cart-continue-button"
                      whileTap={{ scale: 0.96 }}
                      className={styles.checkoutBtn}
-                     disabled={!street || !number || loading || !isOpen}
+                     disabled={!street || !number || loading || !isOpen || calculatingFee}
                      onClick={() => { setStep('checkout'); setIsCartOpen(false); }}
                    >
-                     {!isOpen ? 'Loja Fechada' : (loading ? 'Processando...' : 'CONTINUAR')}
+                     {!isOpen ? 'Loja Fechada' : (loading ? 'Processando...' : (calculatingFee ? 'Calculando Frete...' : 'CONTINUAR'))}
                    </motion.button>
                  </div>
                )}
