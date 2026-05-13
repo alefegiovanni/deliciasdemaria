@@ -234,8 +234,8 @@ export default function MenuPage() {
         }
       }
 
-      // Senior: 2. Fallback to full address string
-      const query2 = `${cleanAddr}, SP, Brasil`;
+      // Senior: 2. Fallback to full address string - FORCE São Paulo and Brazil
+      const query2 = `${cleanAddr}, São Paulo, Brasil`;
       console.log(`[Geocoding] Attempt 2 (Full): ${query2}`);
       const res2 = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query2)}&limit=1`, {
         headers: { 'User-Agent': 'DeliciasDeMaria/1.2' }
