@@ -188,26 +188,48 @@ export default function MenuPage() {
     if (data) {
       setEstimatedTime(data.prep_time_minutes);
       setIsOpen(data.is_open ?? true);
-      // Senior: Always sort fees by distance to ensure correct matching logic
       const sortedFees = (data.distance_fees || []).sort((a: any, b: any) => a.maxKm - b.maxKm);
       setDistanceFees(sortedFees);
-      setStoreAddress(data.store_address || '');
+      
+      if (data.store_address) {
+        setStoreAddress(data.store_address);
+        // Senior: If we just loaded the store address, invalidate any previous coordinate cache
+        // to ensure it's re-resolved with the correct address
+        storeCoordsRef.current = null;
+        
+        // If we already have a customer address from localStorage, trigger a re-calculation
+        const saved = localStorage.getItem('delicias_address');
+        if (saved) {
+          try {
+            const addrData = JSON.parse(saved);
+            if (addrData.cep) {
+              const fullAddress = `${addrData.street}, ${addrData.number}, ${addrData.neighborhood}, ${addrData.city}`;
+              // Small delay to ensure state is updated
+              setTimeout(() => updateDeliveryFee(fullAddress), 100);
+            }
+          } catch(e) {}
+        }
+      }
     }
   };
 
   const getCoordinates = async (address: string, cepValue?: string) => {
     try {
+      if (!address || address.trim() === '') return null;
+
       const cleanAddr = address.replace(/\(CEP:.*?\)/g, '').replace(/-/g, ',').trim();
       const detectedCEP = (cepValue || (address.match(/\d{5}-?\d{3}/) || [])[0] || '').replace(/\D/g, '');
-      const detectedCity = cleanAddr.toLowerCase().includes('são josé') ? 'São José dos Campos' : 
-                          cleanAddr.toLowerCase().includes('caçapava') ? 'Caçapava' : 'Caçapava';
+      
+      // Senior: Detect city more robustly
+      const isSJC = cleanAddr.toLowerCase().includes('são josé') || cleanAddr.toLowerCase().includes('sjc');
+      const detectedCity = isSJC ? 'São José dos Campos' : 'Caçapava';
 
-      // Senior: 1. Try by CEP + City together for maximum precision
+      // Senior: 1. Try by CEP + City + State for maximum precision
       if (detectedCEP.length === 8) {
-        const query = `${detectedCEP} ${detectedCity}, Brasil`;
+        const query = `${detectedCEP}, ${detectedCity}, SP, Brasil`;
         console.log(`[Geocoding] Attempt 1 (CEP+City): ${query}`);
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`, {
-          headers: { 'User-Agent': 'DeliciasDeMaria/1.0' }
+          headers: { 'User-Agent': 'DeliciasDeMaria/1.1' }
         });
         const data = await res.json();
         if (data && data.length > 0) {
@@ -215,12 +237,11 @@ export default function MenuPage() {
         }
       }
 
-      // Senior: 2. Try by Street + City
-      const street = cleanAddr.split(',')[0];
-      const query2 = `${street}, ${detectedCity}, SP, Brasil`;
-      console.log(`[Geocoding] Attempt 2 (Street+City): ${query2}`);
+      // Senior: 2. Try by Street + City + SP
+      const query2 = `${cleanAddr}, ${detectedCity}, SP, Brasil`;
+      console.log(`[Geocoding] Attempt 2 (Full): ${query2}`);
       const res2 = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query2)}&limit=1`, {
-        headers: { 'User-Agent': 'DeliciasDeMaria/1.0' }
+        headers: { 'User-Agent': 'DeliciasDeMaria/1.1' }
       });
       const data2 = await res2.json();
       if (data2 && data2.length > 0) {
@@ -244,11 +265,19 @@ export default function MenuPage() {
   };
 
   const updateDeliveryFee = async (customerAddr: string) => {
-    if (!customerAddr || !storeAddress) return;
+    // Senior: If storeAddress isn't loaded yet, we can't calculate. 
+    // fetchSettings will call this again once it loads.
+    if (!customerAddr || !storeAddress) {
+      console.log('[Fee] Waiting for storeAddress or customerAddr...');
+      return;
+    }
+    
     setCalculatingFee(true);
     
     try {
+      // Senior: Only use cache if it was successfully resolved for the CURRENT storeAddress
       if (!storeCoordsRef.current) {
+        console.log(`[Fee] Resolving store coordinates for: ${storeAddress}`);
         storeCoordsRef.current = await getCoordinates(storeAddress);
       }
       
@@ -262,28 +291,29 @@ export default function MenuPage() {
 
       if (storeCoords && customerCoords) {
         const dist = calculateDistance(storeCoords.lat, storeCoords.lon, customerCoords.lat, customerCoords.lon);
-        console.log(`[Fee] Distance calculated: ${dist.toFixed(2)}km`);
+        console.log(`[Fee] Success! Distance: ${dist.toFixed(2)}km`);
+        console.log(`[Fee] From: ${storeAddress} To: ${customerAddr}`);
+        
         setDistance(Object.assign(Number(dist), { display_target: customerCoords.display }));
         
-        // Nova lógica de taxa proporcional
         const fee = calcularTaxaEntrega(dist);
         setSelectedFee(fee);
       } else {
-        console.warn('[Fee] Could not determine coordinates. Using fallback logic.');
+        console.warn('[Fee] Could not determine coordinates. Check if addresses are valid.');
+        console.log(`[Fee] Store Coords: ${storeCoords ? 'OK' : 'FAIL'} | Customer Coords: ${customerCoords ? 'OK' : 'FAIL'}`);
         
-        // Senior: Fallback Logic - If geocoding fails but we know the city is Caçapava,
-        // we use the minimum fee.
+        // Senior: Fallback Logic
         const isLocal = customerAddr.toLowerCase().includes('caçapava');
         if (isLocal) {
           setSelectedFee(TAXA_MINIMA);
         } else {
-          // If not local and geocoding failed, use a slightly higher default or keep minimum
-          setSelectedFee(TAXA_MINIMA + 3.00); // Ex: R$ 8,00 as a safe default for unknown distances
+          // If not local and geocoding failed, use a higher default
+          setSelectedFee(TAXA_MINIMA + 10.00); // R$ 15,00 default for out-of-town unknown distance
         }
       }
     } catch (err) {
       console.error('Fee calculation error:', err);
-      setSelectedFee(distanceFees[distanceFees.length - 1]?.price || 0);
+      setSelectedFee(TAXA_MINIMA + 5.00);
     } finally {
       setCalculatingFee(false);
     }

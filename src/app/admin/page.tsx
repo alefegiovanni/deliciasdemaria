@@ -990,7 +990,7 @@ const categories = Array.from(new Set(productsList.map(p => p.category)));
             <div className={styles.storeAddressConfig}>
               <div className={styles.storeAddressHeader}>
                 <div>
-                  <label>Endereço da Loja (Ponto de Partida)</label>
+                  <label>Endereço do Restaurante (Origem para Cálculo de Frete)</label>
                   <p className={styles.currentAddress}>
                     {storeAddress || 'Nenhum endereço configurado.'}
                   </p>
@@ -1086,21 +1086,6 @@ const categories = Array.from(new Set(productsList.map(p => p.category)));
               </div>
             </div>
 
-            <div className={styles.storeAddressConfig}>
-              <div className={styles.storeAddressHeader}>
-                <label><MapPin size={14} /> Endereço da Loja (Origem do Cálculo)</label>
-                <div className={styles.currentAddress}>
-                  {storeAddress || 'Endereço não configurado'}
-                </div>
-                <button 
-                  className={styles.btnAddItemMain} 
-                  style={{ marginTop: '0.5rem', width: 'fit-content' }}
-                  onClick={() => setIsAddressModalOpen(true)}
-                >
-                  <Edit size={16} /> Alterar Endereço
-                </button>
-              </div>
-            </div>
           </div>
         )}
 
