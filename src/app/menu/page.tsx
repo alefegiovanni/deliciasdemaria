@@ -289,9 +289,9 @@ export default function MenuPage() {
       if (storeCoords && customerCoords) {
         const dist = calculateDistance(storeCoords.lat, storeCoords.lon, customerCoords.lat, customerCoords.lon);
         console.log(`[Fee] Success! Distance: ${dist.toFixed(2)}km`);
-        console.log(`[Fee] From: ${storeAddress} To: ${customerAddr}`);
+        console.log(`[Fee] Using: ${customerAddr}`);
         
-        setDistance(Object.assign(Number(dist), { display_target: customerCoords.display }));
+        setDistance(dist);
         
         const fee = calcularTaxaEntrega(dist);
         setSelectedFee(fee);
@@ -321,22 +321,27 @@ export default function MenuPage() {
     if (cleanCEP.length === 8) {
       try {
         setCalculatingFee(true);
+        console.log(`[ViaCEP] Searching: ${cleanCEP}`);
         const res = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`);
         const data = await res.json();
+        
         if (!data.erro) {
-          // Senior: Update states immediately
+          console.log(`[ViaCEP] Result: ${data.logradouro}, ${data.bairro}, ${data.localidade}`);
+          
+          // Force update states
           setStreet(data.logradouro);
           setCity(data.localidade);
           setNeighborhood(data.bairro);
           
-          // Trigger fee calculation with the new data
-          const fullAddress = `${data.logradouro}, ${number || 'S/N'}, ${data.bairro}, ${data.localidade}`;
-          await updateDeliveryFee(fullAddress);
+          // Calculate fee using exact data from ViaCEP
+          const addrForFee = `${data.logradouro}, ${number || 'S/N'}, ${data.bairro}, ${data.localidade}`;
+          await updateDeliveryFee(addrForFee);
         } else {
-          console.error('CEP não encontrado');
+          console.error('[ViaCEP] CEP não encontrado');
+          // Optional: clear address if not found to avoid confusion
         }
       } catch (err) {
-        console.error('Erro ao buscar CEP', err);
+        console.error('[ViaCEP] Erro ao buscar CEP', err);
       } finally {
         setCalculatingFee(false);
       }
